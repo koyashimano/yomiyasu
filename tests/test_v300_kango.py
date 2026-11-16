@@ -32,10 +32,10 @@ class KangoSkillTest(unittest.TestCase):
 
     def test_paragraph_keeps_the_original_choice(self):
         """漢語と和語の選び方を原文のままにし、文書でふつうに使う漢語を和語の言い方に替えない。"""
-        for words in ("漢語と和語の選び方は原文のままにします。",
+        for words in ("漢語と和語の選び方は原文のままにする。",
                       "その文書でふつうに使う漢語（確認する、使用する、停止する、動作する、現在、現時点）は和語の言い方に替えず",
-                      "報告書の「発生」も残します。",
-                      "新規作成でも、資料の漢語を和語の言い方に替えません。"):
+                      "報告書の「発生」も残す。",
+                      "新規作成でも、資料の漢語を和語の言い方に替えない。"):
             with self.subTest(words=words):
                 self.assertIn(words, self.part)
 
@@ -43,16 +43,16 @@ class KangoSkillTest(unittest.TestCase):
         """和語に替えてよいのは、ほかの決まりで直す所だけ。そこでも意味の幅を変えない（2.5.0 の決まりを戻した）。"""
         for words in ("中身のない硬い漢語（多角的、包括的、活用する。`references/slop-catalog.md` 7章）",
                       "名詞化の言い回し（〜を実施する、〜することが可能です）",
-                      "ほかの決まりで直す所だけです。",
-                      "和語の動詞に替えるのは目的語が文の中で追え、意味の幅が同じときだけにします（「確認する」は「見る」にしません）。",
-                      "書き直した所に、原文にない漢語や名詞化の言い回し（担保、〜の実施）を足しません。"):
+                      "ほかの決まりで直す所だけ。",
+                      "和語の動詞に替えるのは目的語が文の中で追え、意味の幅が同じときだけにする（「確認する」は「見る」にしない）。",
+                      "書き直した所に、原文にない漢語や名詞化の言い回し（担保、〜の実施）を足さない。"):
             with self.subTest(words=words):
                 self.assertIn(words, self.part)
 
     def test_persona_and_general_reader_stay_outside(self):
         """ペルソナで敬語を上げる言い換えと、general の読み手の言い換えは、この決まりの外。"""
         self.assertIn("ペルソナで敬語を上げる言い換え（同じこと → 同様のこと）と、読み手を general に指定されたときの言い換え"
-                      "（`references/audience.md` 8章）は、この決まりの外です。", self.part)
+                      "（`references/audience.md` 8章）は、この決まりの外とする。", self.part)
 
     def test_no_wago_examples_in_skill(self):
         """和語の側の例は書かない（禁じる振る舞いを呼ばないため）。2.6.0 の「発生」「担保」の文は、この段落にまとめた。"""
@@ -76,7 +76,9 @@ class KangoReferencesTest(unittest.TestCase):
                               "和語にする案は採らない", rephrase)
                 self.assertNotIn("難しい漢語が続く箇所は、ふだん使う言葉や動詞に直します", tech)
                 self.assertNotIn("漢字の割合は20%前後を目安にします。", tech)
-                self.assertIn("技術文書でふつうに使う漢語は、和語の言い方に替えません", tech)
+                self.assertNotIn("難しい漢語が続く箇所は、ふだん使う言葉や動詞に直す", tech)
+                self.assertNotIn("漢字の割合は20%前後を目安にする。", tech)
+                self.assertIn("技術文書でふつうに使う漢語は、和語の言い方に替えない", tech)
                 self.assertIn("硬い漢語として扱わず、和語の言い方に替えない", slop)
                 self.assertIn("「使用する」は「使う」にしない", slop)
                 self.assertNotIn("意図しない動き方", gemini)

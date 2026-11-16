@@ -133,8 +133,8 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
         step2 = self.skill.find("### Step 2:")
         step3 = self.skill.find("### Step 3:")
         rephrase = self.skill.find("（言い直しテスト）", step2)
-        sentence = self.skill.find("自分が書いた原稿では、読み手が動く値と主張を資料と文脈で確かめます。")
-        edit_item = self.skill.find("\n4. 本文は1か所ずつ、前後の文を読んで直します。", step2)
+        sentence = self.skill.find("自分が書いた原稿では、読み手が動く値と主張を資料と文脈で確かめる。")
+        edit_item = self.skill.find("\n4. 本文は1か所ずつ、前後の文を読んで直す。", step2)
         self.assertTrue(0 <= step2 < rephrase < sentence < edit_item < step3,
                         (step2, rephrase, sentence, edit_item, step3))
         self.assertEqual(self.skill.count("`references/fact-recovery.md` を読み"), 1)
@@ -149,13 +149,14 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
     def test_question_place_is_report_and_grounds_are_limited(self):
         """設計 5.1 の相殺（確認は報告で行う）と、根拠を限る「だけ」が入っている。
         3.0.0 では、読み取れないことの質問を本文に入れない文が「情報が足りない場合の暫定文」にあり、確かめられなかった
-        事実の行き先は雛形の「事実の確かめ」の括弧に書いてある。根拠の文は「〜に書いてあることだけです」になった。"""
+        事実の行き先は雛形の「事実の確かめ」の括弧に書いてある。根拠の文は「〜に書いてあることだけです」になり、SKILL.md を常体にして「〜に書いてあることだけ」になった。"""
         self.assertNotIn("不明な点の確認は「書き手に確かめたい点」で行います", self.skill)
+        self.assertNotIn("不明な点の確認は「書き手に確かめたい点」で行う", self.skill)
         provisional = self.skill[self.skill.index("### 情報が足りない場合の暫定文"):self.skill.index("### 文書の立場と文末")]
         self.assertIn("読み取れないことの注記、質問、「要確認」のような編集表示は本文に入れず", provisional)
         fact_heading = self.skill.index("### 事実の確かめ\n")
         self.assertIn("確かめられなかった点", self.skill[fact_heading:self.skill.index("### 確認の記録", fact_heading)])
-        self.assertIn("コマンドの出力）に書いてあることだけです", self.skill)
+        self.assertIn("コマンドの出力）に書いてあることだけ", self.skill)
 
     def test_reference_states_its_own_rules(self):
         """fact-recovery.md が、SKILL.md にない決まりを SKILL.md に任せていない（資料での訂正、戻すだけの修正の例外、

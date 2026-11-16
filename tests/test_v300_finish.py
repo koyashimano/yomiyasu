@@ -38,15 +38,15 @@ class LabelTest(unittest.TestCase):
         cls.labels = section(text(SKILL), "### 太字とラベル")
 
     def test_label_is_removed_alone_only_when_every_word_is_in_the_sentence(self):
-        self.assertIn("ラベルを外すだけにして語を足さないのは、ラベルの語がすべて説明の文にあるときだけです。", self.labels)
-        self.assertIn("説明の文にないラベルの語は落とさずに文へ入れ、1文にします", self.labels)
+        self.assertIn("ラベルを外すだけにして語を足さないのは、ラベルの語がすべて説明の文にあるときだけ。", self.labels)
+        self.assertIn("説明の文にないラベルの語は落とさずに文へ入れ、1文にする", self.labels)
         self.assertNotIn("説明の文がすでにラベルと同じ対象と条件を述べているなら", self.labels)
 
     def test_meaning_guard_is_kept(self):
-        for words in ("2つを1つの条件にまとめず、ラベルとコロンを残して太字だけを外します",
-                      "ラベルを文に入れたら、入れる前とラベルの働きが同じかを確かめます",
-                      "入れたあとで、条件や否定、「〜し、」で続けた節の掛かる範囲が変わったら、ラベルとコロンの形に戻します",
-                      "番号と項目の数と順は保ちます"):
+        for words in ("2つを1つの条件にまとめず、ラベルとコロンを残して太字だけを外す",
+                      "ラベルを文に入れたら、入れる前とラベルの働きが同じかを確かめる",
+                      "入れたあとで、条件や否定、「〜し、」で続けた節の掛かる範囲が変わったら、ラベルとコロンの形に戻す",
+                      "番号と項目の数と順は保つ"):
             with self.subTest(words=words):
                 self.assertIn(words, self.labels)
         # 意味の守りは、ラベルの語を入れる決まりのあとに置く（入れたあとで確かめる）
@@ -75,11 +75,11 @@ class NakuCommaTest(unittest.TestCase):
         self.assertNotIn("ではなく、", skill)
         negation = section(skill, "### セルフラベリングと否定対比の整理")
         self.assertIn("「原因はキャッシュではなくDNSの設定でした」", negation)
-        self.assertIn("「弱みではなく視点の違いでもある」は一つの文のまま残します", negation)
+        self.assertIn("「弱みではなく視点の違いでもある」は一つの文のまま残す", negation)
 
     def test_merge_does_not_add_a_comma(self):
         merge = section(text(SKILL), "### 2文の否定対比と「もちろん、」")
-        self.assertIn("否定を残して1文にまとめ、「なく」のあとに読点を足しません。", merge)
+        self.assertIn("否定を残して1文にまとめ、「なく」のあとに読点を足さない。", merge)
 
     def test_rephrase_test_examples(self):
         body = text(REFS / "rephrase-test.md")
@@ -121,14 +121,14 @@ class CalqueTypesTest(unittest.TestCase):
     def test_five_types(self):
         calques = section(text(SKILL), "### 直訳語、漢語の詰まり、連用形名詞")
         self.assertIn("英語の短い術語に当てた漢字1字の名詞、英語の術語に当てた2字以上の名詞）", calques)
-        self.assertIn("（術語に当てた名詞を定着した呼び名に替えるのは差し替えに入りません）", calques)
+        self.assertIn("（術語に当てた名詞を定着した呼び名に替えるのは差し替えに入らない）", calques)
         # lint と calques.md の型5と同じ言い方
         self.assertIn("英語の術語に当てた2字以上の名詞", text(LINT))
         self.assertIn("- 型5: 英語の術語に当てた2字以上の名詞", text(REFS / "calques.md"))
 
     def test_step1_reads_flag_patterns(self):
         step1 = section(text(SKILL), "### Step 1:")
-        self.assertIn("`flag-patterns.txt`（見直す語の名前と正規表現。flag.txt と同じ扱い）を読みます", step1)
+        self.assertIn("`flag-patterns.txt`（見直す語の名前と正規表現。flag.txt と同じ扱い）を読む", step1)
 
 
 def skill_pointers(body):
