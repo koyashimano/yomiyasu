@@ -7,14 +7,14 @@ yomiyasu_diff.py - 元の文と書き直した文を比べ、変わった箇所�
 出すものは9つ。
   1. 全文差分: 変わった箇所を省略せずに出す（太字、見出しの段、空白、空行、字下げ、コード、引用、表の変化も残す）。
      変わった箇所を示すだけで、意味が同じだという証明ではない。
-  2. 意味が変わる恐れ: 数値、否定、主語と目的語の入れ替え、問いと平叙、文の種類を表す語、許可・能力の言い方（してよい、できる）、
-     コード・URL・引用など変えない箇所の変化、否定対比の主張の逆転、元の文書にない気持ちの語。
+  2. 意味が変わる恐れ: 数値、否定、主語と目的語の入れ替え、問いと平叙、文の種類を表す言葉、許可・能力の言い方（してよい、できる）、
+     コード・URL・引用など変えない箇所の変化、否定対比の主張の逆転、元の文書にない気持ちの言葉。
      どれも確かめる場所で、意味が変わったという判定ではない。
   3. 規則の見直し候補（v1.1.2 からの9つの点検）:
      文末や言い回しの種類の数の増減、元の文にない語と消えた語、箇条書きや段落の変化、つながりを確かめる場所、
-     文末の種類と文書の立場、文の種類を表す語、太字にならない書き方と直し方の案。
+     文末の種類と文書の立場、文の種類を表す言葉、太字にならない書き方と直し方の案。
   4. 文体の硬化の検査: 漢字の割合、名詞化の言い回し、「の」の連続が推敲で増えた所（見直し候補だけで、件数と合否に入れない）。
-  5. 勢いの検査: 「！」「？」、絵文字、強める語が減った所と、見出しが大きく縮んだ所（同じく見直し候補だけ）。
+  5. 勢いの検査: 「！」「？」、絵文字、強める言葉が減った所と、見出しが大きく縮んだ所（同じく見直し候補だけ）。
   6. 慎重表現の減り: 同じ文の推量印の候補と重ねず、hedges の節に出す（合否には入れない）。
   7. 動かしてはいけない値: 引用の書き方の変化は meaning_risks（citation、合否の対象）、宛名と裸のメールは immutable（合否の対象外）。
      数字・単位とURLは既存検査を使い、空白つきの科学単位・数値の符号・統計値の比較記号の抜けだけ補う。引用の数値だけの変化が number で出たら重ねない。
@@ -22,7 +22,7 @@ yomiyasu_diff.py - 元の文と書き直した文を比べ、変わった箇所�
   9. 原文にない人や担当（2.4.0）: 原文と資料にない人・担当・部署を、主語か、知らせる・頼む相手に足した文を
      added_actors の節に出す（意味が変わる恐れには入れず、件数、状態、--fail-on にも入れない）。
   paper の硬化と勢いは参考。mail の勢い（絵文字を含む）は見直し候補。
-  名詞化の言い回し、強める語、気持ちの語、慎重表現の一覧は ../references/lists/ から読み、なければ内蔵の一覧を使う。
+  名詞化の言い回し、強める言葉、気持ちの言葉、慎重表現の一覧は ../references/lists/ から読み、なければ内蔵の一覧を使う。
 意味が同じかどうか、つながりが合っているか、文末が立場に合っているかの最終判断は、この結果を見たモデル（または人）がする。
 """
 
@@ -132,7 +132,7 @@ else:
 
 # 読み込みのときに組む正規表現は、初めて使うときに組む（_lazy_compile）。1回の実行で使うのは一部だけなので、lint と
 # diff を CLI で動かすときや、check が子プロセスとして動かすときの起動の時間を延ばさないため。関数の中で組む正規表現
-# （利用者が書く語の一覧の正規表現を含む）は、今までどおりその場で組み、書き誤りをすぐに知らせる。
+# （利用者が書く用語リストの正規表現を含む）は、今までどおりその場で組み、書き誤りをすぐに知らせる。
 _PATTERN_ATTRIBUTES = ("search", "match", "fullmatch", "finditer", "findall", "sub", "subn", "split", "scanner",
                        "flags", "groups", "groupindex")
 
@@ -185,7 +185,7 @@ MARKERS = {
 # MARKERS をコンパイルしたもの（_rule_candidates で使う。並びは MARKERS と同じ。diff を詰めたときに、速くするために足した）
 _MARKER_REGEXES = tuple((name, _lazy_compile(pattern)) for name, pattern in MARKERS.items())
 
-# 文の種類を表す語。推敲の前後で対応する範囲を比べ、その語が消えた・増えたものを候補にする。
+# 文の種類を表す言葉。推敲の前後で対応する範囲を比べ、その語が消えた・増えたものを候補にする。
 # 種類と関係のない用法（様子の「降りそうだ」、目的の「使えるように」、「という名前」、「素晴らしい」、
 # 受身の「見落とされた」、問いの「〜でしょうか」、評価の「驚くべき」など）は拾わない。
 _END = r"(?=[。、！!？?よねがけのかし]|です|$)"
@@ -646,7 +646,7 @@ def _widen_to_sentences(groups: list, moved: Sequence, r_spans: Sequence) -> Non
 # 数えない候補（modality_review）にとどめる（推敲の言い換えで、できることの意味が残る書き換えが多いため）。能力が増えただけの
 # 範囲は正しい直し（名詞の句を動詞に開いた「〜できることを確認」など）が多いので出さない。「しなくてよい」「不要」「必要はない」は
 # 許可と分けて「不要」の種類にし、その変化は候補にしない。義務・禁止・保証・不要を表す語は、変化の相手の名前（detail の to と
-# from）を書くためだけに使う（義務・禁止の変化は文の種類を表す語の候補が、保証を足した書き換えは約束の候補が、「必ず」は確度が
+# from）を書くためだけに使う（義務・禁止の変化は文の種類を表す言葉の候補が、保証を足した書き換えは約束の候補が、「必ず」は確度が
 # 受け持つ）。
 # 「て」のあとの許可から外す形: とても、にとって、と言っても、全て・すべて、極めて、初めて、改めて、あえて、かつて、せめて、決して、
 # 総じて、概して、として、によって、について、「くて」（安くてよい、しなくてよい）、依頼の「いただいても（よろしい・いい）」。
@@ -767,10 +767,10 @@ def _shared_ranges(o: str, r: str) -> tuple:
 def _modality_changes(o: str, r: str) -> list:
     """許可・能力の言い方が変わった範囲。正規化した元と後の文章を受け取り、
     [{"orig", "rewrite", "subkind", "from", "to", "lost", "added"}] を返す（subkind は permission_lost、permission_added、
-    ability_lost）。範囲は、文の種類を表す語を比べる範囲と同じ（_type_ranges）。直前の _type_changes が同じ文章で作った範囲が
+    ability_lost）。範囲は、文の種類を表す言葉を比べる範囲と同じ（_type_ranges）。直前の _type_changes が同じ文章で作った範囲が
     あれば使い回す（diff() は使い終えたら _LAST_TYPE_RANGES を空に戻す）。「不要」の種類の変化だけの範囲は出さない。
-    同じ範囲で依頼・決まりを表す語が消えたか増えたときは、文の種類を表す語の候補に任せて出さない（「してよい → しなければ
-    ならない」は文の種類を表す語の候補1件のまま）。"""
+    同じ範囲で依頼・決まりを表す語が消えたか増えたときは、文の種類を表す言葉の候補に任せて出さない（「してよい → しなければ
+    ならない」は文の種類を表す言葉の候補1件のまま）。"""
     if o == r:
         return []
     o_pos, r_pos = _modality_positions(o), _modality_positions(r)
@@ -2843,7 +2843,7 @@ _URL_CHARS = _lazy_compile(r"[A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%]*")
 def _align(old: Sequence[str], new: Sequence[str], similar: bool = False) -> list:
     """2つの並び（行か文の断片）を対応させ、組 (i, j, 中身が同じか) の並びを返す（i と j はどちらも増える）。
 
-    difflib.SequenceMatcher を並び全体にかけると、空行やコードの囲みのように同じ要素が何度も出る文書で、
+    difflib.SequenceMatcher を並び全体にかけると、空行やコードブロックのように同じ要素が何度も出る文書で、
     時間が要素の数の2乗から3乗で伸びる（測った例: 短い段落900個の6万字で10秒あまり）。そこで次の順に対応させる。
     1. 前と後ろの同じ要素を外す。
     2. 両方に1回ずつだけ出る空白だけでない要素を組の候補にし、順番を保つ最長の並び（patience diff の考え方）を組にする。
@@ -3678,7 +3678,7 @@ _RISK_ORDER = {"number": 0, "negation": 1, "swap": 2, "sentence_type": 3, "prote
                "feeling": 6, "certainty": 7, "certainty_review": 8, "quote": 9, "state": 10, "promise": 11, "claim": 12,
                "promise_review": 13, "modality": 14, "modality_review": 15, "choice": 16, "causality": 17,
                "number_qualifier": 18}
-# 状態の語が消えた書き換え（state）と、約束を足した書き換え（promise）も数える。因果を足した書き換え（claim）と、書き手を
+# 状態の言葉が消えた書き換え（state）と、約束を足した書き換え（promise）も数える。因果を足した書き換え（claim）と、書き手を
 # 表す語のない「〜します」を足した書き換え（promise_review。説明や手順の文かもしれない）は数えない。
 # --fail-on=meaning-risk が数える kind（数値、否定、主語と目的語の入れ替え、文の種類、引用の書き方の変化、確度の強まり）。
 # 変えない箇所（protected）は意味が変わる恐れの節に出すが数えない。check は資料にない数値（unsupported/number）も数える。
@@ -4485,7 +4485,7 @@ def _number_risks(sides: _Sides, full: dict, groups: list) -> list:
 
     「元の文書のどこにもない」「後の文書のどこにもない」は、伏せる前の数値（コードや URL の中も含む）で見る。
     文書全体の比べで出すのは、hunk の行の中にある値だけ（意味が変わる恐れの対象は、全文差分で変わった塊の中だけ）。
-    変わっていない行をコードの囲みに入れただけで、その行の値を「消えた数値」にしないため（反証で見つけた例）。
+    変わっていない行をコードブロックに入れただけで、その行の値を「消えた数値」にしないため（反証で見つけた例）。
 
     数量を主張しない「一つ」（一つの、一つずつ、もう一つ）は、単独では元にない数値・消えた数値にしない（反証で見つけた例）。
     組の文の added と lost で、範囲・日付・時刻のまとまりの部品の値は、文書全体ではなく組の相手の文と、そのすぐ前とすぐあとの
@@ -6003,7 +6003,7 @@ def _meaning_risks(sides: _Sides, full: dict, type_changes: Sequence | None, gro
     risks += citations
     masks = (_Masker(sides, 0), _Masker(sides, 1))
     certainty = _certainty_risks(sides, groups, risks, masks, doc_type=doc_type)
-    # 強める向きでも、同じ原文の文に数える確度の候補が出なければ、外した文の種類を表す語の候補を戻す。
+    # 強める向きでも、同じ原文の文に数える確度の候補が出なければ、外した文の種類を表す言葉の候補を戻す。
     strengthened = [(r["old_line"], normalize(r["old"] or "").strip()) for r in certainty
                     if (r["kind"], r["subkind"]) == ("certainty", "strengthened")]
     restored_ids = set()
@@ -6026,7 +6026,7 @@ def _meaning_risks(sides: _Sides, full: dict, type_changes: Sequence | None, gro
     added.sort(key=lambda r: (r["old_line"] if r["old_line"] is not None else r["new_line"] or 0,
                               r["new_line"] if r["new_line"] is not None else 0))
     risks += added
-    # 出力から外した文の種類を表す語の候補も、状態・約束の候補を重ねないかを決めるのに使う。
+    # 出力から外した文の種類を表す言葉の候補も、状態・約束の候補を重ねないかを決めるのに使う。
     additions = _addition_risks(sides, groups, risks + sides.quiet_marks, masks)
     # 状態の候補に写した確度の見直しだけを取り除く。数える確度は残す。
     lost = [_Body('', r['old'], r['old_line'], 0) for r in additions if r['kind'] == 'state']
@@ -6038,11 +6038,11 @@ def _meaning_risks(sides: _Sides, full: dict, type_changes: Sequence | None, gro
 
 
 # ---- 一覧のファイル（diff の詰め）----
-# 名詞化の言い回し、強める語、気持ちの語、慎重表現の一覧は references/lists/ に置き、足し引きできるようにする。diff はスクリプトの隣の
+# 名詞化の言い回し、強める言葉、気持ちの言葉、慎重表現の一覧は references/lists/ に置き、足し引きできるようにする。diff はスクリプトの隣の
 # ../references/lists/<名前>.txt を読み、ないとき（配布 ZIP に入っていない、ZIP の中から読み込まれた）や読めないとき
 # （UTF-8 でない、正規表現の誤り）は、ここに置いた内蔵の一覧で動く。どちらを使ったかは JSON の "list" に出す。
-# 書き方: 1行に1つ。空行と「#」で始まる行は読み飛ばす。名詞化の言い回しと気持ちの語は「名前<TAB>正規表現」、強める語と慎重表現は語だけ。
-# 気持ちの語は3つ目の欄を置いてよい（「名前<TAB>正規表現<TAB>原文の言い方の正規表現」。原文にこの言い方があれば、その家族の
+# 書き方: 1行に1つ。空行と「#」で始まる行は読み飛ばす。名詞化の言い回しと気持ちの言葉は「名前<TAB>正規表現」、強める言葉と慎重表現は語だけ。
+# 気持ちの言葉は3つ目の欄を置いてよい（「名前<TAB>正規表現<TAB>原文の言い方の正規表現」。原文にこの言い方があれば、その家族の
 # 気持ちは原文にあるとみなす。お詫び → 申し訳、ありがとう → 感謝。diff を詰めたときに、反証で見つけた例から足した）。
 
 BUILTIN_LISTS = {
@@ -6062,9 +6062,9 @@ BUILTIN_LISTS = {
         ("を行う", "を行(?:う|い|っ|わ|え)"),
         ("不可能", "(?:は|が)不可能"),
     ),
-    # 量や気持ちを強める語と、評価を強める語の9個と、紹介記事で勢いを出す語の「パンチ」「ずらり」（diff の詰めで測って足した）
+    # 量や気持ちを強める言葉と、評価を強める言葉の9個と、紹介記事で勢いを出す語の「パンチ」「ずらり」（diff の詰めで測って足した）
     "intensifiers": ("本当に", "とても", "すごく", "ぜひ", "絶対", "最強", "抜群", "イチオシ", "大活躍", "パンチ", "ずらり"),
-    # 気持ちの語（試作の辞書を、語の家族ごとにまとめた）。diff を詰めたときに
+    # 気持ちの言葉（試作の辞書を、語の家族ごとにまとめた）。diff を詰めたときに
     # 反証で見つけた例から、心配・満足・落ち込むの気持ちでない言い方を除き、
     # 感謝と申し訳に原文の言い方の欄を足し、苦しい〜胸が の8つの家族を足した
     "feelings": (
@@ -6116,7 +6116,7 @@ BUILTIN_LISTS = {
         # 落ち込み）と、「半分に落ち込む」（数が下がった先）を除く（反証で見つけた例。名詞を1つずつ並べると後読みが48個に
         # なるので、終わりの字で見る）。「上」「ト」「ク」「ス」で終わる数の名詞（売上、コスト、レート、リクエスト、スループット、
         # トラフィック、アクセス、パフォーマンス、ペース、セールス）は語ごとに除く。終わりの字で除くと、苗字（井上、村上）、
-        # 片仮名の名前（マーク、ルーカス）、呼び名（母上、ゲスト）のあとの気持ちの語を見逃す（反証で見つけた例）
+        # 片仮名の名前（マーク、ルーカス）、呼び名（母上、ゲスト）のあとの気持ちの言葉を見逃す（反証で見つけた例）
         ("落ち込む", "落ち込(?<!に落ち込)(?<![げ数率量額高要績気益価][がはの]落ち込)(?<!売上[がはの]落ち込)(?<!コスト[がはの]落ち込)"
                     "(?<!レート[がはの]落ち込)(?<!リクエスト[がはの]落ち込)(?<!スループット[がはの]落ち込)(?<!トラフィック[がはの]落ち込)"
                     "(?<!アクセス[がはの]落ち込)(?<!パフォーマンス[がはの]落ち込)(?<!ペース[がはの]落ち込)(?<!セールス[がはの]落ち込)"),
@@ -6152,7 +6152,7 @@ _LIST_PROBLEM_WIDTH = 40        # 理由に写す行の字数の上限
 
 def parse_list(text: str, pattern: bool = False) -> list:
     """一覧のファイルの中身を読む。pattern が真なら [(名前, 正規表現の文字列)]、偽なら [語]。空行と「#」で始まる行は読み飛ばす。
-    pattern が真で3つ目の欄（タブのあと）がある行は (名前, 正規表現, 3つ目の欄) にする（気持ちの語の「原文の言い方」）。
+    pattern が真で3つ目の欄（タブのあと）がある行は (名前, 正規表現, 3つ目の欄) にする（気持ちの言葉の「原文の言い方」）。
     先頭の BOM（U+FEFF）は外す（Windows のメモ帳の「UTF-8（BOM 付き）」。反証で見つけた例）。
     正規表現の誤りはここでは確かめない（_load_list が確かめ、誤りがあれば内蔵の一覧にする）。"""
     if text.startswith("\ufeff"):
@@ -6224,7 +6224,7 @@ def _list_problem_text(error: BaseException) -> str:
 
 def _load_list(name: str) -> tuple[Sequence, str]:
     """一覧を読む。(項目, 出どころ) を返す。出どころは "references/lists/<名前>.txt" か "builtin"。
-    pattern の一覧の項目は (名前, コンパイルした正規表現)。強める語と慎重表現の項目は語。
+    pattern の一覧の項目は (名前, コンパイルした正規表現)。強める言葉と慎重表現の項目は語。
     ファイルがあるのに読めなかったとき（UTF-8 でない、書き方や正規表現の誤り、開けない）は、内蔵の一覧で動き、理由を
     _LIST_PROBLEMS に残す（_list_info）。BOM つきの UTF-8 も読む（utf-8-sig。反証で見つけた例）。"""
     if name in _LIST_CACHE:
@@ -6265,7 +6265,7 @@ def _list_info(name: str) -> dict:
     return {"list": source, "list_problem": _LIST_PROBLEMS.get(name)}
 
 
-# ---- 本文として数える文（硬化、否定対比の逆転、気持ちの語、勢いの検査で共通）----
+# ---- 本文として数える文（硬化、否定対比の逆転、気持ちの言葉、勢いの検査で共通）----
 
 # 文として数えない行の種類（コード、URL、表、見出しなど）
 _BODY_SKIP_KINDS = frozenset(("code", "frontmatter", "html_block", "table", "heading", "heading_underline",
@@ -6875,7 +6875,7 @@ def _contrast_risks(sides: _Sides, groups: list) -> list:
 
 
 # ---- 気持ちの創作（kind feeling）----
-# 元の文書のどこにもない気持ちの語（ほっとした、安堵した、うれしかった…）が、推敲後の変わった文に足されたら候補にする。
+# 元の文書のどこにもない気持ちの言葉（ほっとした、安堵した、うれしかった…）が、推敲後の変わった文に足されたら候補にする。
 # 一覧は references/lists/feelings.txt（語の家族ごとに「名前<TAB>正規表現」。3つ目の欄は原文の言い方で、原文にあればその家族の
 # 気持ちは原文にあるとみなす）。--fail-on=meaning-risk には数えない。
 
@@ -6885,7 +6885,7 @@ def _feeling_risks(sides: _Sides, groups: list) -> list:
         return []
     # 原文にない家族だけを見る。3つ目の欄（原文の言い方）が原文に当たる家族も、原文にある気持ちとみなす。
     # 速くするため（結果は同じ）、原文を家族ごとに調べるのは、推敲後の変わった文に当たった家族だけにする（多くの文書では
-    # 気持ちの語のある変わった文がないので、原文を調べずに済む）。変わった文は、気持ちの語の一覧のどれにも当たらなければ、
+    # 気持ちの言葉のある変わった文がないので、原文を調べずに済む）。変わった文は、気持ちの言葉の一覧のどれにも当たらなければ、
     # 1つにまとめた正規表現（_any_of）で先に見分けて飛ばす
     found = {}
 
@@ -6935,7 +6935,7 @@ def _feeling_risks(sides: _Sides, groups: list) -> list:
 
 # ---- 文体の硬化の検査（JSON の stiffness、レポートの「■ 文体の硬化」）----
 # 原文と推敲後で、漢字の割合、平均の文の長さ、名詞化の言い回し、「の」の連続を比べ、推敲で硬くなった所を見直し候補にする。
-# 意味が変わる恐れには入れず、candidate_count、状態の行、--fail-on にも入れない。どの条件も推敲で増えた分だけを見る
+# 意味が変わる恐れには入れず、candidate_count、ステータス行、--fail-on にも入れない。どの条件も推敲で増えた分だけを見る
 # （原文がもともと硬いだけなら出さない）。文書の種類が formal（公用文、規程、契約書、仕様書）と incident（障害報告）なら
 # 参考（level info）。数値は試作で決め直した値。
 
@@ -7213,8 +7213,8 @@ def _stiffness(sides: _Sides, full: dict, groups: list, doc_type: str | None) ->
 
 
 # ---- 勢いの検査（JSON の tone、レポートの「■ 勢い」）----
-# 文書の種類によらず毎回行う。「！」「!」、「？」「?」、絵文字、強める語の数が原文より減ったら、減った行の前後を並べて候補にする。
-# 見出しの字数の合計が原文の7割未満になったら候補にする。コード、URL、表の中は数えない。candidate_count、状態の行、
+# 文書の種類によらず毎回行う。「！」「!」、「？」「?」、絵文字、強める言葉の数が原文より減ったら、減った行の前後を並べて候補にする。
+# 見出しの字数の合計が原文の7割未満になったら候補にする。コード、URL、表の中は数えない。candidate_count、ステータス行、
 # --fail-on には入れない。技術文書、障害報告、ヘルプ、公用文に当たる種類（pr、article、incident、manual、formal）では参考。
 # diff を詰めたときに、次を変えた。
 # - 「！」が同じ段落に3つ以上あれば減っても数えない許しを外した（作者の判断、2026-10-14 朝。紹介記事・宣伝文では「！」を
@@ -7223,7 +7223,7 @@ def _stiffness(sides: _Sides, full: dict, groups: list, doc_type: str | None) ->
 # - 「？」の減りは、組になった推敲後の文が間接の問い（「〜かとの質問」「〜かどうか」）なら数えない（反証で見つけた例）。
 # - 候補の位置の抜き出しを、当たった記号や語のまわり（前後20字）にし、2か所目からも行を並べる（反証で見つけた例）。
 # - --doc-type promo のときは、番号つき項目の行と太字だけの行も見出しの字数に数える（反証で見つけた例）。
-# 同じ強める語の繰り返しを減らした推敲を数えない案（反証で見つけた例）は採らない（強める語を削らない、減らさないという
+# 同じ強める言葉の繰り返しを減らした推敲を数えない案（反証で見つけた例）は採らない（強める言葉を削らない、減らさないという
 # 作者の判断と食い違うため）。
 
 TONE_INFO_DOC_TYPES = ("pr", "article", "incident", "manual", "formal", "paper")
@@ -7238,8 +7238,8 @@ TONE_TYPED_REVIEW_DOC_TYPES = {"emoji": ("promo", "mail"), "heading": ("promo", 
 # 参考の理由の文で、参考にした候補ごとに書く決まり（_detector_section）
 _TONE_TYPED_RULES = (("emoji", "絵文字を外し", "絵文字を外す"), ("heading", "見出しを短い項目名にし", "見出しを短い項目名にする"))
 # 参考の5種類（TONE_INFO_DOC_TYPES）の理由の文で、参考にした候補ごとに書く直し方（_detector_section。絵文字や見出しだけの候補に
-# 「「！」や強める語を減らす」と書かない。反証で見つけた例）
-_TONE_INFO_RULES = ((("exclamation", "question", "intensifier"), "「！」や強める語を減らし", "「！」や強める語を減らす"),
+# 「「！」や強める言葉を減らす」と書かない。反証で見つけた例）
+_TONE_INFO_RULES = ((("exclamation", "question", "intensifier"), "「！」や強める言葉を減らし", "「！」や強める言葉を減らす"),
                     (("emoji",), "絵文字を外し", "絵文字を外す"),
                     (("heading",), "見出しを短い項目名にし", "見出しを短い項目名にする"))
 TONE_HEADING_RATIO = 0.7        # 見出しの字数の合計が、原文のこの割合未満になったら候補にする
@@ -7258,7 +7258,7 @@ _TONE_KINDS = ("exclamation", "question", "emoji", "intensifier")
 _TONE_LABELS = {"exclamation": "「！」", "question": "「？」", "emoji": "絵文字"}
 _EXCLAMATION = _lazy_compile(r"[！!]")
 _QUESTION_MARK = _lazy_compile(r"[？?]")
-# 強める語の数え方から外す語（「絶対値」「絶対パス」は強める語ではない）
+# 強める言葉の数え方から外す語（「絶対値」「絶対パス」は強める言葉ではない）
 _INTENSIFIER_EXCLUDED = _lazy_compile(r"絶対(?:値|パス|参照|座標|位置|時間|温度|音感|零度|的)")
 _ATX_MARKERS = _lazy_compile(r"^[ \t]{0,3}#{1,6}(?:[ \t]+|$)|[ \t]+#+[ \t]*$")
 _FALLBACK_EMOJI = _lazy_compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B50\u2B55\u231A\u231B\u23E9-\u23FA]\uFE0F?")
@@ -7361,7 +7361,7 @@ def _heading_chars(text: str) -> int:
 
 
 def _mark_spans(text: str, kind: str, intensifiers: re.Pattern[str] | None) -> list:
-    """行の中の、数えた印（「！」「？」、絵文字、強める語）の位置 [(始め, 終わり)]。抜き出しの中心を決めるためだけに使う
+    """行の中の、数えた印（「！」「？」、絵文字、強める言葉）の位置 [(始め, 終わり)]。抜き出しの中心を決めるためだけに使う
     （行は伏せる前の形なので、インラインのコードの中の印も入る）。"""
     if kind == "exclamation":
         return [match.span() for match in _EXCLAMATION.finditer(text)]
@@ -7553,7 +7553,7 @@ def _tone_places(full: dict, old_lines: dict, new_lines: dict, kind: str, intens
 
 
 # ---- 資料との照合（yomiyasu_check.py がプロセスの中で呼ぶ）----
-# 照らすのは数値、名前、語、確度の語だけ。主張、条件、担当が資料どおりかは判定しない。
+# 照らすのは数値、名前、言葉、確度の言葉だけ。主張、条件、担当が資料どおりかは判定しない。
 
 # 名前（製品名や識別子）。NFKC のあとの英数字2字以上
 _NAME = _lazy_compile(r"[A-Za-z][A-Za-z0-9_.+#/-]*[A-Za-z0-9]")
@@ -7562,9 +7562,9 @@ _NAME = _lazy_compile(r"[A-Za-z][A-Za-z0-9_.+#/-]*[A-Za-z0-9]")
 _URL_SCHEME = _lazy_compile(r"\b[A-Za-z][A-Za-z0-9+.-]{0,31}://")
 # 語（CONTENT のうち、漢字2字以上と片仮名2字以上）
 _GROUND_WORD = _lazy_compile(r"[一-龥々〆ヵヶ]{2,}|[ァ-ヴー]{2,}")
-# 確度の語。「はず」は「はずれ」「はずす」の頭を除く
+# 確度の言葉。「はず」は「はずれ」「はずす」の頭を除く
 _CERTAINTY_WORDS = ("未確認", "未定", "予定", "検討中", "調査中", "見込み", "可能性", "かもしれ", "はず", "確認済み", "確定", "暫定")
-# 「未定」は「未定義」を、「確定」は「確定する」「確定申告」を除く（確度の語ではない）
+# 「未定」は「未定義」を、「確定」は「確定する」「確定申告」を除く（確度の言葉ではない）
 _CERTAINTY_NOT = {"はず": "(?![れさしすせ])", "未定": "(?!義)", "確定": "(?!する|申告)"}
 _CERTAINTY = _lazy_compile("|".join(re.escape(word) + _CERTAINTY_NOT.get(word, "")
                                     for word in sorted(_CERTAINTY_WORDS, key=len, reverse=True)))
@@ -7846,16 +7846,16 @@ def ground(final: str, materials: Sequence[str], original: str | None = None, la
     original は原文（推敲のとき。なければ新規作成）。照合の JSON（attempt-<n>.materials.json の形）を返す。
 
     取る項目は数値（diff と同じ取り出し方、(数, 単位) で比べる）、名前（英数字2字以上）、語（漢字2字以上と片仮名2字以上）、
-    確度の語。名前と語と確度の語は、NFKC にして空白を除いた文字列の部分文字列かで「ある」とみなす。
+    確度の言葉。名前と語と確度の言葉は、NFKC にして空白を除いた文字列の部分文字列かで「ある」とみなす。
     分類は in_original（原文にある）、from_materials（原文になく資料にある）、not_in_sources（どちらにもない）、
-    dropped_certainty（資料にある確度の語が最終稿にない）、not_in_final（資料にある数値が最終稿にない。参考で、候補にしない。
+    dropped_certainty（資料にある確度の言葉が最終稿にない）、not_in_final（資料にある数値が最終稿にない。参考で、候補にしない。
     final_lines は []。diff の詰めで足した）。数値は照合の中だけで時間の単位と小数部が0だけの数をそろえる。
     「単位なし」と「単位あり」は、範囲・日付・時刻のまとまりか、空白のあとに単位がある形でだけ表記の違いとみなす。
     名前は英数字の境目で照らす。
 
     意味が変わる恐れ（kind unsupported）に入れるもの: 新規作成で資料にない数値（subkind number）と、両方のモードで資料にない
     名前（subkind name）。推敲の数値は diff の数値の候補の basis で扱う（check が "material" か "none" を入れる）ので入れない。
-    candidate_count は、意味が変わる恐れの数に、照合の節の見直し候補の行（新規作成の「資料にない語」、確度の語、
+    candidate_count は、意味が変わる恐れの数に、照合の節の見直し候補の行（新規作成の「資料にない語」、確度の言葉、
     推敲の「資料に基づく補足の候補」）を1行ずつ足したもの。「参考」の行は数えない。"""
     mode = "rewrite" if original is not None else "compose"
     materials = list(materials)
@@ -7974,7 +7974,7 @@ _MIKOMI = (r"見込(?:ま(?:れ|せ)|んで|む(?=[。、]|$)|め(?:る|ま)|み
            r"|見込み" + _PREDICATE_END
            + r"|" + _PREDICATE_STEM + r"見込み(?=の)|" + _PREDICATE_BEFORE + r"見込み(?=で(?!は)|、)|(?<=の)見込み(?=で、)"
            + r"|見込み(?=(?:が|も|は)(?:高|大き|強|あ|立|薄|低|な))")
-# 様態の「そう」と、推量の「よう」「らしい」「みたい」（文の種類を表す語の表（TYPE_MARKERS）の推量と同じ語にそろえた。反証で見つけた例）
+# 様態の「そう」と、推量の「よう」「らしい」「みたい」（文の種類を表す言葉の表（TYPE_MARKERS）の推量と同じ語にそろえた。反証で見つけた例）
 _APPEARANCE = (r"(?<=[きしちにひみりぎじびぴえけせてねへめれげぜべぺさ])そう(?:です|だ|な|に|で(?!す)|でした|だった)"
                r"|(?<=[るうくすつぬぶむぐいた])よう(?:だ|です|でした|だった|である)(?=[。、！!よね]|$)"
                r"|(?<=[るうくすつぬぶむぐた])らし(?:い|かった)(?=[。、！!よね]|です|$)"
@@ -8054,7 +8054,7 @@ def _certainty_words(text: str) -> list:
 
 
 def _certainty_word_spans(text: str) -> list[tuple]:
-    """確度の語を、_certainty_words の5つ組に終わりの位置を足して返す。"""
+    """確度の言葉を、_certainty_words の5つ組に終わりの位置を足して返す。"""
     found, taken = [], []
     for level, name, regex, core in _CERT:
         for match in regex.finditer(text):
@@ -8103,7 +8103,7 @@ _HEDGE_CONTENT = _lazy_compile(r"[一-龥々〆ヵヶァ-ヴA-Za-z0-9０-９Ａ-
 
 
 def _hedge_polarity(text: str, word: tuple, words: Sequence[tuple]) -> int:
-    """語のある節（前後の読点・句点・改行まで）の否定の印の数。確度の語の範囲と、そのすぐあとに続く否定
+    """語のある節（前後の読点・句点・改行まで）の否定の印の数。確度の言葉の範囲と、そのすぐあとに続く否定
     （可能性も否定でき｜ません）は数えない。"""
     head = text.rfind("\n", 0, word[2]) + 1
     for stop in "、。！？!?，,":
@@ -8115,7 +8115,7 @@ def _hedge_polarity(text: str, word: tuple, words: Sequence[tuple]) -> int:
 
 
 def _hedge_conditions(text: str, words: Sequence[tuple]) -> int:
-    """すぐあとが条件の形になっている確度の語の数。"""
+    """すぐあとが条件の形になっている確度の言葉の数。"""
     return sum(1 for w in words if _HEDGE_CONDITION.match(text, w[5]))
 
 
@@ -8127,9 +8127,9 @@ def _hedge_clause(text: str, start: int) -> set[str]:
 
 
 def _classify_hedge_marks(orig: str, rewrite: str, lost: Sequence, added: Counter) -> str:
-    """推量を表す語だけの変化を、確度の語の強さで分ける。
-    same と strengthen だけを、文の種類を表す語の候補から外す。問い、否定（述語の否定の数の違い、「とは限らない」を含む）、条件の
-    形の違い、表外語を先に除き、推量を表す語に重なる確度の語をすべて打ち消せたか、残った語がどちら向きに変わったかを見る。
+    """推量を表す語だけの変化を、確度の言葉の強さで分ける。
+    same と strengthen だけを、文の種類を表す言葉の候補から外す。問い、否定（述語の否定の数の違い、「とは限らない」を含む）、条件の
+    形の違い、表外語を先に除き、推量を表す語に重なる確度の言葉をすべて打ち消せたか、残った語がどちら向きに変わったかを見る。
     same にするのは、打ち消しの相手が core の語で、同じ節の中身の字を共有し（別の事柄への慎重さで打ち消さない）、
     相手のない語がどちらの側にも残らないときだけ（反証で見つけた例）。"""
     if {mark["kind"] for mark in list(lost) + list(added)} != {"推量"}:
@@ -8227,7 +8227,7 @@ _COUNTED_BY_DOC_TYPE_FROM = ("場合がある", "ことがある")
 # 崩れる）。この語のある文では、種類で数える言い切りにしない。
 _CERTAINTY_FREQUENCY = _lazy_compile(r"まれに|稀に|ときどき|時々|時折|ときおり|たまに|一部|によっては|場合によって|こともある")
 # 断定に強さ5の語（必ず、確実 など）を足した段を、種類で数えない原文の言い方（決まりを言う文の「必須にする」を「必ず実施する」に
-# した書き換えは、決まりの強さを言い換えただけのことが多い）。文の種類を表す語の「依頼・決まり」（してください、なければならない、
+# した書き換えは、決まりの強さを言い換えただけのことが多い）。文の種類を表す言葉の「依頼・決まり」（してください、なければならない、
 # べき、必要がある など）と同じ表に、必須、ものとする、手順の「〜すること。」を足したもの。
 _CERTAINTY_DUTY = _lazy_compile(TYPE_MARKERS["依頼・決まり"].pattern + r"|必須|ものと(?:する|します)|こと(?=[。]|$)", re.M)
 
@@ -8354,7 +8354,7 @@ def _certainty_risks(sides: _Sides, groups: list, risks: list[dict], masks: Sequ
     return out
 
 
-# ---- 状態の語の消え・書き手の約束・因果 ----
+# ---- 状態の言葉の消え・書き手の約束・因果 ----
 # 状態・約束・主張の語の表。漢字の範囲も、この検出専用に保つ。
 
 _ADD_K = "一-龥々〆ヵヶ"
@@ -8437,7 +8437,7 @@ _ADD_KEEP_CROSS = {  # ほかの家族の語でも残ったとみなす
 
 _ADD_KEEP_EXTRA_RX = dict((k, [_lazy_compile(p) for p in v]) for k, v in _ADD_KEEP_EXTRA.items())
 
-# 条件の中の語は、状態の主張にしない。
+# 条件の中の言葉は、状態の主張にしない。
 
 _ADD_COND = _lazy_compile(r"[^。、]{0,12}?(?:場合|なら|とき|時(?:は|に)|うちは|(?<=[けれ])ば|たら)")
 
@@ -8615,7 +8615,7 @@ def _addition_state_words(text: str) -> list:
 
 
 def _addition_topic(text: str, pos: int) -> list[str]:
-    """状態の語の前の、同じ節の内容語（何の状態か）。別の文に移ったとみなすときに照らす。"""
+    """状態の言葉の前の、同じ節の内容語（何の状態か）。別の文に移ったとみなすときに照らす。"""
     start = max(text.rfind("。", 0, pos), text.rfind("、", 0, pos)) + 1
     words = [w for w in _ADD_CONTENT.findall(text[start:pos]) if w not in _ADD_TOPIC_STOP]
     if not words:
@@ -8980,7 +8980,7 @@ def _addition_state_risks(doc: _AdditionDocument, group: _AdditionGroup) -> list
         if any(r['old_line'] == body.line and normalize(r['old'] or '') == normalize(body.raw)
                for r in doc.by_kind.get('negation', ())):
             continue
-        # 推量を表す語が足された文は、文の種類を表す語の候補に任せる（確度の候補と同じ扱い）。
+        # 推量を表す語が足された文は、文の種類を表す言葉の候補に任せる（確度の候補と同じ扱い）。
         if any(_same_review_sentence(body, r) and any(m['kind'] in ('推量', '意見') for m in r['detail'].get('added', []))
                for r in doc.same_sentence('sentence_type', body) if r['subkind'] == 'marks'):
             continue
@@ -9040,7 +9040,7 @@ def _addition_promise_risk(doc: _AdditionDocument, group: _AdditionGroup, i: int
             kept.append((sub, name, key, pos, strong))
     if i is not None and doc.same_sentence('certainty', group.bodies[0][i]):
         kept = [c for c in kept if c[0] != 'promise']
-    # 読み手への依頼が消えて書き手の行為になった文は、文の種類を表す語の候補に任せる。
+    # 読み手への依頼が消えて書き手の行為になった文は、文の種類を表す言葉の候補に任せる。
     if i is not None and not _ADD_REQUEST.search(body.text) and any(r['subkind'] == 'marks'
                              and any(m['kind'] == '依頼・決まり' for m in r['detail'].get('lost', ()))
                              and not any(m['kind'] == '依頼・決まり' for m in r['detail'].get('added', ()))
@@ -9822,7 +9822,7 @@ def _politeness(sides: _Sides, doc_type: str | None) -> dict:
 # ---- 原文にない人や担当を足した文（JSON の added_actors と、レポートの同じ名前の節。2.4.0）----
 # 推敲で、原文（と資料）にない人・担当・部署を、主語か、知らせる・頼む相手として足した文を出す（SKILL.md の「元にない担当者を
 # 創作しない」と、persona.md 5章の「役割の名前や人の名前を主語として作らない」）。意味が変わる恐れの kind ではないので、
-# meaning_risk_count、candidate_count、状態、状態の行、--fail-on には入れない（JSON の最後のキーとして足す）。
+# meaning_risk_count、candidate_count、状態、ステータス行、--fail-on には入れない（JSON の最後のキーとして足す）。
 # 見るのは書き直した文（全文差分の hunk の文）だけ。語が原文か資料のどこかにあれば出さない。依頼の文は diff から見えないので、
 # 依頼にだけ書いてある人も出る（節の見出しに、依頼にもいなければ戻すと書く）。意味が変わったかは判定しない。
 # 区分（JSON の tier）: A = 知らせる・頼む相手に足した、B = 具体的な役割・部署・人名を主語に足した、C = 一般の担い手（開発者、利用者、
@@ -10252,7 +10252,7 @@ def _added_actor_section(d: dict) -> str:
 # コード、表、見出し、引用、HTML、カギ括弧と二重カギ括弧の中、URL、インラインのコードは数えない。候補には、読点が2個以上
 # 増えた文を、元の近い文（_actor_old。2文をつないだ文は、つないだ元の文も合わせる）と並べて最大5文まで出す。元の文が見つから
 # ない文（足した文）は挙げない。1文あたりの増え方は分数で比べる（0.3個ちょうどの増え方も出す）。
-# どちらも意味が変わる恐れの kind ではないので、meaning_risk_count、candidate_count、状態、状態の行、--fail-on には入れない。
+# どちらも意味が変わる恐れの kind ではないので、meaning_risk_count、candidate_count、状態、ステータス行、--fail-on には入れない。
 # 原文と最終稿が同じか、行の差がなければ、どちらも出さない（comma_increase は None）。
 _COMMA_MARKS = _lazy_compile(r"[、，]")
 _COMMA_MIN_ADDED = 3
@@ -10454,7 +10454,7 @@ def diff(orig_raw: str, rw_raw: str, stance: str | None = None, *, encoding_note
     消した言い切り、断定に「必ず」などを足した書き換え）を --fail-on に数える側に入れる。能力の言い方の消え（ability_lost）は、
     どの種類でも数えない候補（modality_review）。文体の硬化の検査（stiffness）と勢いの検査（tone）は、種類で level を決める
     （paper の硬化と勢いも参考の info。mail の勢いは絵文字・見出しも review）。mail だけ敬語の度合いも検査する。値は中で正規化し、使えない値は ValueError。
-    words は語の一覧（markdown_visibility.resolve_words の値）。渡すと context.words（場所、語の数、SHA-256）に残すだけで、
+    words は用語リスト（markdown_visibility.resolve_words の値）。渡すと context.words（場所、語の数、SHA-256）に残すだけで、
     差分と候補は変えない（diff には allow.txt で外す規則がない）。None なら一覧なし。
     materials は資料の文字列の並び（2.4.0）。原文にない人や担当を足した文の検査（added_actors）だけが使い、資料にある人や担当は
     出さない。ほかのキーは変えず、context にも残さない。"""
@@ -10494,7 +10494,7 @@ def diff(orig_raw: str, rw_raw: str, stance: str | None = None, *, encoding_note
     # candidate_count、状態、--fail-on には入れない（既存の出力の形を変えないよう、最後のキーとして足す）
     out["stiffness"] = _stiffness(sides, full, groups, context["doc_type"])
     out["tone"] = _tone(sides, full, context["doc_type"], groups)
-    # 気持ちの語（meaning_risks の kind feeling）の一覧の出どころ（stiffness.list、tone.list と同じ形。diff を詰めたときに
+    # 気持ちの言葉（meaning_risks の kind feeling）の一覧の出どころ（stiffness.list、tone.list と同じ形。diff を詰めたときに
     # 反証で見つけた例から足した）
     out["feeling"] = _list_info("feelings")
     out["hedges"] = _hedges(sides, groups, risks)
@@ -10551,15 +10551,15 @@ def detector_review_count(d: dict) -> int:
     return count
 
 
-# 状態の行の末尾に足す文（diff を詰めたときに足した。反証で見つけた例）。硬化と勢いの候補は candidate_count と状態に入れない
+# ステータス行の末尾に足す文（diff を詰めたときに足した。反証で見つけた例）。硬化と勢いの候補は candidate_count と状態に入れない
 # ので、見直し候補（review）があるときだけ、節があることを添える（「候補はない」と「見直し候補 1件」が並ぶのを防ぐ）。
-# レポートの最後の状態の行では、節はその上にあるので「上の節」と書く（反証で見つけた例）
+# レポートの最後のステータス行では、節はその上にあるので「上の節」と書く（反証で見つけた例）
 _DETECTOR_STATUS_NOTE = "（文体の硬化と勢いの見直し候補 {}件は下の節）"
 _DETECTOR_STATUS_NOTE_ABOVE = "（文体の硬化と勢いの見直し候補 {}件は上の節）"
 
 
 def _status_line(d: dict, note: str = _DETECTOR_STATUS_NOTE) -> str:
-    """状態の行。変更の数は hunk の数。文体の硬化と勢いの見直し候補があれば、末尾にその数を添える（note。レポートの
+    """ステータス行。変更の数は hunk の数。文体の硬化と勢いの見直し候補があれば、末尾にその数を添える（note。レポートの
     最後の行では _DETECTOR_STATUS_NOTE_ABOVE）。"""
     if d["status"] == "no_change":
         return "状態: 変更なし"
@@ -10598,7 +10598,7 @@ def _risk_line(risk: dict) -> str:
     old_line, new_line = risk.get("old_line"), risk.get("new_line")
     where = _where(old_line, new_line)
     if kind == "state":
-        return ("状態の語が消えた{}: {}。原文は、まだ決まっていない・分かっていない・済んでいないことを伝えています。"
+        return ("状態の言葉が消えた{}: {}。原文は、まだ決まっていない・分かっていない・済んでいないことを伝えています。"
                 "決まった・済んだ・約束した形に変えていないか確かめ、変えていれば原文の状態に戻してください。".format(
                     where, "、".join(detail["words"])))
     if kind == "promise":
@@ -10715,7 +10715,7 @@ def _risk_line(risk: dict) -> str:
         return ("否定対比の主張が逆になった恐れ{}: 原文で否定されていた『{}』が、推敲後は否定のない文に出ています。"
                 "主張が逆になっていないか確かめてください。".format(where, detail.get("word", "")))
     if kind == "feeling":
-        return "元にない気持ちの語{}: {}".format(where, "、".join(detail.get("words", [])))
+        return "元にない気持ちの言葉{}: {}".format(where, "、".join(detail.get("words", [])))
     if kind == "unsupported":
         # 資料との照合（check が ground() の結果を同じ節に並べる）。最終稿の側の行だけを書く
         label = "資料にない数値" if subkind == "number" else "資料にない名前"
@@ -10752,7 +10752,7 @@ def _risk_section(d: dict) -> str:
         if risk.get("new") is not None:
             lines.append("  後: " + risk["new"])
     if marks:
-        lines.append("- 文の種類を表す語が変わった: {}件（下の「■ 文の種類を表す語が変わった文」を見る）".format(marks))
+        lines.append("- 文の種類を表す言葉が変わった: {}件（下の「■ 文の種類を表す言葉が変わった文」を見る）".format(marks))
     return "\n".join(lines)
 
 
@@ -10782,7 +10782,7 @@ def _rule_lines(d: dict, rewritten_only: bool = True) -> list:
             sent = c["rewrite"] if len(c["rewrite"]) <= 44 else c["rewrite"][:44] + "…"
             lines.append(f"- {c['orig_kind']} → {c['rewrite_kind']}: {sent}")
     if d.get("type_changes"):
-        lines.append("■ 文の種類を表す語が変わった文（伝聞・推量・意見・例え・依頼が、元の文と同じか見る）")
+        lines.append("■ 文の種類を表す言葉が変わった文（伝聞・推量・意見・例え・依頼が、元の文と同じか見る）")
         for c in d["type_changes"]:
             lines.append(f"- 元: {c['orig'] if len(c['orig']) <= 60 else c['orig'][:60] + '…'}")
             lines.append(f"  後: {c['rewrite'] if len(c['rewrite']) <= 60 else c['rewrite'][:60] + '…'}")
@@ -11040,17 +11040,17 @@ def _tone_line(candidate: dict) -> str:
         return "見出しの字数の合計が{}字から{}字（原文の{:.0f}%）になりました{}。{}".format(
             detail["old"], detail["new"], 100.0 * detail["new"] / detail["old"], shown, tail)
     if subkind == "intensifier":
-        label = "強める語（{}）".format("、".join(detail.get("words") or [])) if detail.get("words") else "強める語"
+        label = "強める言葉（{}）".format("、".join(detail.get("words") or [])) if detail.get("words") else "強める言葉"
     else:
         label = _TONE_LABELS.get(subkind, subkind)
     return "原文の{}{}個が、推敲後は{}個になりました{}。{}".format(label, detail["old"], detail["new"], shown, tail)
 
 
 # 一覧のファイルを読めなかったときに、硬化と勢いの節に出す1行（diff を詰めたときに足した。反証で見つけた例）。硬化の節には
-# 名詞化の言い回しの一覧、勢いの節には強める語の一覧と気持ちの語の一覧（気持ちの語の検査には自分の節がないので、勢いの節に置く）
+# 名詞化の言い回しの一覧、勢いの節には強める言葉の一覧と気持ちの言葉の一覧（気持ちの言葉の検査には自分の節がないので、勢いの節に置く）
 _LIST_NOTE_LABELS = (("stiffness", "stiffness", "nominalization", "名詞化の言い回しの一覧"),
-                     ("tone", "tone", "intensifiers", "強める語の一覧"),
-                     ("tone", "feeling", "feelings", "気持ちの語の一覧（意味が変わる恐れの「元にない気持ちの語」に使う）"))
+                     ("tone", "tone", "intensifiers", "強める言葉の一覧"),
+                     ("tone", "feeling", "feelings", "気持ちの言葉の一覧（意味が変わる恐れの「元にない気持ちの言葉」に使う）"))
 _LIST_NOTE = "- {} references/lists/{}.txt を読めなかったので、内蔵の一覧で検査しました（{}）。ファイルに足し引きした語は効いていません。"
 
 
@@ -11092,7 +11092,7 @@ def _detector_section(d: dict, key: str) -> str:
         name, render = "勢い", _tone_line
         review = "書き手の勢いを落としていないか確かめる"
         if doc_type in TONE_INFO_DOC_TYPES:
-            # 参考にした候補（「！」「？」と強める語、絵文字、見出し）の直し方だけを書く（反証で見つけた例）
+            # 参考にした候補（「！」「？」と強める言葉、絵文字、見出し）の直し方だけを書く（反証で見つけた例）
             shown = set(candidate.get("subkind") for candidate in candidates if candidate.get("level") == "info")
             rules = [rule for rule in _TONE_INFO_RULES if shown.intersection(rule[0])] or [_TONE_INFO_RULES[0]]
             reference = "文書の種類 {} では{}のが正しい直し方のことが多いので、参考として出しています".format(
@@ -11160,10 +11160,10 @@ def report_parts(d: dict) -> dict:
 
 
 def report(d: dict) -> str:
-    """人が読むレポート。1行目、状態の行、断り、意味が変わる恐れ、規則の見直し候補、原文にない人や担当を足した文、見出しの形、
-    読点の増加、文体の硬化、勢い、全文差分、状態の行の順（文体の硬化と勢いは diff の詰めで、原文にない人や担当を足した文は 2.4.0 で、
+    """人が読むレポート。1行目、ステータス行、断り、意味が変わる恐れ、規則の見直し候補、原文にない人や担当を足した文、見出しの形、
+    読点の増加、文体の硬化、勢い、全文差分、ステータス行の順（文体の硬化と勢いは diff の詰めで、原文にない人や担当を足した文は 2.4.0 で、
     見出しの形と読点の増加は 2.5.0 で足した。候補がなければ出さない）。
-    最後の状態の行の添え書きは「上の節」。末尾に改行は付けない。"""
+    最後のステータス行の添え書きは「上の節」。末尾に改行は付けない。"""
     status = _status_line(d)
     parts = report_parts(d)
     body = [part for part in (parts["risks"], parts["rules"], parts["added_actors"], parts["heading_shapes"],
@@ -11175,7 +11175,7 @@ def report(d: dict) -> str:
         head.append(context_label(context.get("doc_type"), context.get("reader")) + _REPORT_CONTEXT_TAIL
                     + (_REPORT_COUNTED_TAIL if context.get("doc_type") in COUNTED_TYPES else ""))
     if isinstance(context.get("words"), dict):
-        # 語の一覧を使ったときだけ（種類と読者の行のあと）
+        # 用語リストを使ったときだけ（種類と読者の行のあと）
         head.append(words_label(context["words"]))
     return "\n".join(head) + "\n\n" + "\n\n".join(body) + "\n\n" + _status_line(d, _DETECTOR_STATUS_NOTE_ABOVE)
 
@@ -11189,22 +11189,22 @@ def read_text(path: str | Path) -> str:
 
 _EXIT_CODES = """終了コード:
   0  比べ終わり、--fail-on の条件に当たらなかった（候補の有無によらない）。--endings の正常終了、-h と --version も0
-  1  --fail-on=meaning-risk の条件に当たった（数値、否定、主語と目的語の入れ替え、文の種類・引用の書き方・確度・状態の語・約束・許可の言い方・選ぶ範囲・因果の恐れが1件以上）
-  2  使い方か入力の誤り（ファイルを開けない、読まないファイル（作業フォルダの外、名前が点で始まる部分を含むパス）を渡した、UTF-8 として読めない、標準入力を読めない、使えない --stance、--fail-on、--doc-type、--reader の値、ファイルの数の誤り、語の一覧を読めない（--words のフォルダがない、UTF-8 でない、1万行を超える、flag.txt か flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す）、--words と --no-words を一緒に指定した）
+  1  --fail-on=meaning-risk の条件に当たった（数値、否定、主語と目的語の入れ替え、文の種類・引用の書き方・確度・状態の言葉・約束・許可の言い方・選ぶ範囲・因果の恐れが1件以上）
+  2  使い方か入力の誤り（ファイルを開けない、読まないファイル（作業フォルダの外、名前が点で始まる部分を含むパス）を渡した、UTF-8 として読めない、標準入力を読めない、使えない --stance、--fail-on、--doc-type、--reader の値、ファイルの数の誤り、用語リストを読めない（--words のフォルダがない、UTF-8 でない、1万行を超える、flag.txt か flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す）、--words と --no-words を一緒に指定した）
   3  予期しない内部の誤り（標準エラーにトレースバックを出す）か、出力先が閉じられて結果を最後まで書けなかった"""
 _USAGE = ("yomiyasu_diff.py [--stance 立場] [--doc-type 種類] [--reader 読者] [--json] [--fail-on meaning-risk]\n"
           "                        [--words フォルダ | --no-words] [--material 資料 ...] 元の文 書き直した文\n"
           "       yomiyasu_diff.py --endings ファイル [--stance 立場]\n"
           "       yomiyasu_diff.py --version")
-_FAIL_ON_HELP = ("意味が変わる恐れのうち、数値、否定、主語と目的語の入れ替え、文の種類（問いと平叙、文の種類を表す語）、引用の書き方の変化、"
+_FAIL_ON_HELP = ("意味が変わる恐れのうち、数値、否定、主語と目的語の入れ替え、文の種類（問いと平叙、文の種類を表す言葉）、引用の書き方の変化、"
                  "確度を強めた書き換え（かもしれない → 見込み、見込み → 予定、と思われる → 断定など）、"
-                 "原文の状態の語（未定、未確認、調査中など）が消えた書き換え、原文にない書き手の約束・保証・再発防止の誓いを足した書き換えが"
+                 "原文の状態の言葉（未定、未確認、調査中など）が消えた書き換え、原文にない書き手の約束・保証・再発防止の誓いを足した書き換えが"
                  "1件でもあれば、終了コード1で終わります。許可の言い方（してよい、してもよい、構わない）が消えたか増えた書き換えも数えます。"
                  "事実や仕様を述べる種類（--doc-type が " + "、".join(COUNTED_TYPES) + "）では、「場合がある」「ことがある」を消して"
                  "言い切った書き換えと、断定に「必ず」「確実に」などを足した書き換えも数えます（ほかの種類と種類なしでは数えません）。"
                  "能力の言い方（できる、可能だ）が消えた書き換えは、どの種類でも数えません。"
                  "コード・URL・引用ブロックなど変えない箇所の変化は、意味が変わる恐れとして出しますが、"
-                 "この条件には数えません。否定対比の主張の逆転と、元にない気持ちの語も数えません。確度を弱めた書き換え、"
+                 "この条件には数えません。否定対比の主張の逆転と、元にない気持ちの言葉も数えません。確度を弱めた書き換え、"
                  "数えない語だけの確度の変化、予定の言い切り（する予定です → します）、かぎかっこの中の言葉の変化も数えません。"
                  "推量の言い方が、同じ強さの別の慎重な言い方に替わっただけの文（かもしれません → 恐れがあります、と思われます → 見込みです）も数えません。"
                  "原文にない因果のつながりを足した書き換えと、書き手の行為と読む言い方（いたします、今後・改めて、"
@@ -11307,13 +11307,13 @@ def _build_parser() -> _ArgumentParser:
     options.add_argument("--reader", metavar="読者",
                          help="想定する読者の知識（値は yomiyasu_lint.py と同じ）。表示と JSON に残すだけで、判定は変わりません。")
     options.add_argument("--words", metavar="フォルダ",
-                         help="語の一覧（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ"
+                         help="用語リスト（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ"
                               "（値は yomiyasu_lint.py と同じ）。省くと、作業ディレクトリから"
                               "上へたどった git の最上位（.git のあるフォルダ。git の外では作業ディレクトリ）の .yomiyasu-words/ を"
                               "探します。linked worktree にこのフォルダがなければ、元の checkout の一覧を探します。"
                               "diff では一覧の場所と語の数を表示と JSON に書きます（差分と候補は変わりません）。")
     options.add_argument("--no-words", action="store_true",
-                         help="語の一覧を探さず、読みません（--words と一緒には使えません）。")
+                         help="用語リストを探さず、読みません（--words と一緒には使えません）。")
     options.add_argument("--material", action="append", dest="materials", metavar="資料",
                          help="資料のファイル。何度でも指定できます。原文にない人や担当を足した文の検査で、資料にある"
                               "人や担当は出しません。ほかの検査と、意味が変わる恐れの数は変わりません。")
@@ -11371,7 +11371,7 @@ def _fail_on_line(total: int, counted: int, risks: Sequence = ()) -> str:
         return "終了コード1: --fail-on=meaning-risk の条件に当たりました（意味が変わる恐れ {}件）。".format(counted)
     return ("終了コード1: --fail-on=meaning-risk の条件に当たりました"
             "（意味が変わる恐れ {}件のうち、数値・否定・入れ替え・文の種類{} {}件）。".format(
-                total, "".join(label for kind, label in (("certainty", "・確度"), ("state", "・状態の語"), ("promise", "・約束"),
+                total, "".join(label for kind, label in (("certainty", "・確度"), ("state", "・状態の言葉"), ("promise", "・約束"),
                                                          ("modality", "・許可の言い方"), ("choice", "・選ぶ範囲"),
                                                          ("causality", "・因果"))
                                if any(r["kind"] == kind for r in risks)), counted))
@@ -11451,7 +11451,7 @@ def _run(argv: list[str] | None) -> int:
             # 無視せずに使い方の誤りにする（--json、--fail-on と同じ）
             parser.error("--endings は --doc-type と --reader に対応していません")
         if args.words is not None or args.no_words:
-            # 文末だけを見るときは語の一覧を探さない。指定は無視せずに使い方の誤りにする（--doc-type と同じ）
+            # 文末だけを見るときは用語リストを探さない。指定は無視せずに使い方の誤りにする（--doc-type と同じ）
             parser.error("--endings は --words と --no-words に対応していません")
         if args.materials:
             parser.error("--endings は --material に対応していません")
@@ -11484,7 +11484,7 @@ def _run(argv: list[str] | None) -> int:
     words = None
     if not args.endings:
         try:
-            # 語の一覧。読めない一覧は、入力を読む前に2で断る（--endings では探さない）
+            # 用語リスト。読めない一覧は、入力を読む前に2で断る（--endings では探さない）
             words = resolve_words(current_directory(), args.words, args.no_words)
         except WordsError as error:
             _error(str(error))

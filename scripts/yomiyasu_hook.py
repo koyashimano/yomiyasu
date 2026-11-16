@@ -33,7 +33,7 @@ _HELP = """使い方: yomiyasu_hook.py --host claude-code|codex [--state-dir DIR
   --state-dir DIR           登録を探す状態フォルダ。省くと環境変数 YOMIYASU_STATE_DIR（空白だけの値と ${ を
                             含む値は使いません）、git の最上位（なければ作業ディレクトリ）の .yomiyasu/ の順に探します。
                             Claude Code では、環境変数 CLAUDE_PROJECT_DIR のプロジェクトの .yomiyasu/ も探します。
-  --words フォルダ          語の一覧（allow.txt と flag.txt。flag-patterns.txt も置けます）のフォルダ。フックは lint を
+  --words フォルダ          用語リスト（allow.txt と flag.txt。flag-patterns.txt も置けます）のフォルダ。フックは lint を
                             動かさないので、続けさせるときや止めるときに案内する yomiyasu_check.py run のコマンドに
                             --words と絶対パスを付けます。
                             一覧を読めないときは付けず、check が作った状態フォルダの hook-errors.log に1行残します。
@@ -379,7 +379,7 @@ class WordsOptionError(ValueError):
 
 
 def _words_arguments(check: ModuleType, options: dict, cwd: str, states: list[str], event: str) -> str:
-    """案内する check run のコマンドに付ける語の一覧の引数（先頭に空白。付けないときは空の文字列）。
+    """案内する check run のコマンドに付ける用語リストの引数（先頭に空白。付けないときは空の文字列）。
     --words は check と同じ決まりで探して読み、読めなければ付けずに hook-errors.log に残す（終了コードは0のまま）。"""
     import shlex
     if '--words' in options and options.get('--no-words'):
@@ -399,7 +399,7 @@ def _words_arguments(check: ModuleType, options: dict, cwd: str, states: list[st
 
 
 def _words_note(words: str) -> str:
-    """run の名前だけを書いた案内のあとに足す文（語の一覧の引数があるときだけ）。"""
+    """run の名前だけを書いた案内のあとに足す文（用語リストの引数があるときだけ）。"""
     return "yomiyasu_check.py run には{}を付けてください。".format(words + ' ') if words else ''
 
 
@@ -414,7 +414,7 @@ def _reason(entry: dict, final: str, v: dict, cwd: str, words: Callable[[], str]
     prefix = "yomiyasu（実行ID {}）: ".format(entry['run_id'])
     tail = "実行できない場合は、完了報告の「実行しなかった検査」に書いてください。"
     if v['status'] == 'no_record':
-        # 語の一覧の引数は、案内する run のコマンドの中に付ける
+        # 用語リストの引数は、案内する run のコマンドの中に付ける
         message = ("登録した原稿 {} の最終稿 {} に、検査記録がありません。yomiyasu_check.py run --source {} --final {}{} "
                    "を実行し、そのあと verify を実行してください。").format(source, final, source, final, words()) + tail
     elif v['status'] == 'final_changed':
@@ -747,7 +747,7 @@ def _process(check: ModuleType, states: list[str], invocation: str | None, data:
              options: dict | None = None) -> str:
     import time
     session = data['session_id']
-    # 案内する check run のコマンドに付ける語の一覧の引数（--words、--no-words を受けたときだけ）。案内の文を作るときだけ
+    # 案内する check run のコマンドに付ける用語リストの引数（--words、--no-words を受けたときだけ）。案内の文を作るときだけ
     # 一覧を読み、読めない一覧を hook-errors.log に残すのも1回だけにする
     found = []
     def words() -> str:

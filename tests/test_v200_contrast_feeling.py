@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v2.0.0（diff の詰めの直し）: 否定対比の主張の逆転（kind contrast_reversal）と、元にない気持ちの語（kind feeling）。
+"""v2.0.0（diff の詰めの直し）: 否定対比の主張の逆転（kind contrast_reversal）と、元にない気持ちの言葉（kind feeling）。
 
 誤検出の反証レビュー（反証で見つけた例）と、仕様の反証
 レビュー（反証で見つけた例の一部）の直し。文はすべて合成の文（レビューの組の文と、それを言い換えた文、
@@ -13,10 +13,10 @@
   Aは保留、Aを控える・避ける・やめる・止める、Aは次回 など）で A を出した推敲は候補にしない。原文の同じ文で、同じ名詞が
   重みの語と一緒に肯定で出ているか、否定の印より後ろ（B の側）にも出ていれば候補にしない。本当の逆転（「Aを前に進めることを
   最優先にする」「XをAに替える」など）は見逃さない。
-- 気持ちの語（P5）: 「心配はありません」「条件を満足する」「売上が落ち込む」は気持ちの語にしない。原文に「ありがとう」「お礼」が
+- 気持ちの言葉（P5）: 「心配はありません」「条件を満足する」「売上が落ち込む」は気持ちの言葉にしない。原文に「ありがとう」「お礼」が
   あれば「感謝」を、「すみません」「お詫び」があれば「申し訳」を、原文にある気持ちとみなす。苦しい、恐怖、嫌な気分、愛おしい、
   心細い、情けない、むなしい、胸が痛む などを足す。
-- F14: エッセイの気持ちを足さない推敲15組（エッセイの plain の組）で、気持ちの語の候補は0件。
+- F14: エッセイの気持ちを足さない推敲15組（エッセイの plain の組）で、気持ちの言葉の候補は0件。
 """
 
 from pathlib import Path
@@ -273,7 +273,7 @@ class ContrastZuTest(unittest.TestCase):
                 self.assertEqual(reversal_words(before, after), [])
 
 
-# ---- P5: 気持ちの語の一覧 ----
+# ---- P5: 気持ちの言葉の一覧 ----
 FEELING_NOT_FOUND = (
     # 「心配」の否定の言い方（反証で見つけた例）
     ("この障害による、データの消失はありません。", "この障害で、データが失われる心配はありません。"),
@@ -334,7 +334,7 @@ FEELING_FOUND = (
 
 
 class FeelingListTest(unittest.TestCase):
-    """反証で見つけた例: 気持ちの語の一覧の直し。"""
+    """反証で見つけた例: 気持ちの言葉の一覧の直し。"""
 
     def test_not_feelings_or_already_in_the_original(self):
         for before, after in FEELING_NOT_FOUND:
@@ -370,7 +370,7 @@ class FeelingListTest(unittest.TestCase):
             self.assertIn(word, builtin)
 
     def test_parse_list_keeps_two_columns_for_other_lists(self):
-        """3つ目の欄は気持ちの語の一覧だけが使う。名詞化の言い回しの一覧は今までどおり2つの欄。"""
+        """3つ目の欄は気持ちの言葉の一覧だけが使う。名詞化の言い回しの一覧は今までどおり2つの欄。"""
         self.assertEqual(yomiyasu_diff.parse_list("名前\t正規表現\n", pattern=True), [("名前", "正規表現")])
         self.assertEqual(yomiyasu_diff.parse_list("名前\t正規表現\t原文\n", pattern=True), [("名前", "正規表現", "原文")])
 
@@ -379,7 +379,7 @@ class KnownLimitTest(unittest.TestCase):
     """拾えない形と、除けない形（記録の限界。直したら、この試験を変える）。"""
 
     def test_drop_with_words_between_is_still_a_feeling(self):
-        """「売上が」「数が」のすぐあとの「落ち込む」だけを除く。間に語が入ると、今までどおり気持ちの語に出る。"""
+        """「売上が」「数が」のすぐあとの「落ち込む」だけを除く。間に語が入ると、今までどおり気持ちの言葉に出る。"""
         self.assertEqual(feeling_words("売上が前年より下がった。", "売上が前年より落ち込んだ。"), ["落ち込"])
 
     def test_including_form_is_not_taken(self):

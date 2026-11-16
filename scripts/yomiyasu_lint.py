@@ -120,7 +120,7 @@ else:
 
 # 読み込みのときに組む正規表現は、初めて使うときに組む（_lazy_compile）。1回の実行で使うのは一部だけなので、lint と
 # diff を CLI で動かすときや、check が子プロセスとして動かすときの起動の時間を延ばさないため。関数の中で組む正規表現
-# （利用者が書く語の一覧の正規表現を含む）は、今までどおりその場で組み、書き誤りをすぐに知らせる。
+# （利用者が書く用語リストの正規表現を含む）は、今までどおりその場で組み、書き誤りをすぐに知らせる。
 _PATTERN_ATTRIBUTES = ("search", "match", "fullmatch", "finditer", "findall", "sub", "subn", "split", "scanner",
                        "flags", "groups", "groupindex")
 
@@ -921,7 +921,7 @@ def _end_closers_for(analysis: dict, line_no: int) -> str:
 SLOP_WORDS = [
     # 質感を装う疑似具体語
     "手触り", "肌感", "肌感覚", "体温", "温度感", "熱量", "血の通った", "泥臭い", "泥臭さ",
-    # 認知・評価を装う語
+    # 認知・評価を装う言葉
     "解像度", "腹落ち", "メンタルモデル", "本質的", "地に足のついた", "等身大",
     # 抽象比喩名詞
     "営み", "土台", "羅針盤", "起爆剤", "触媒",
@@ -949,7 +949,7 @@ _DEVICE_LITERAL_PREFIXES = (
     "電波", "音波", "取り", "読取り",
 )
 # 前が漢字か平仮名か文頭で、上の語でないときだけ拾う。カタカナと英数字の語のあと（レーザー装置、X線装置）は機器の名前として除く。
-# 機器の操作や状態の語が同じ文で後ろに続く単独の「装置」（「この装置は、毎朝自動で起動します」）も除く。
+# 機器の操作や状態の言葉が同じ文で後ろに続く単独の「装置」（「この装置は、毎朝自動で起動します」）も除く。
 _DEVICE_PATTERN = (r"(?:(?<![ァ-ヴーA-Za-z0-9０-９Ａ-Ｚａ-ｚ線])|(?<=イデオロギー))"
                    + "".join("(?<!" + "|".join(group) + ")" for group in (
                        sorted(w for w in _DEVICE_LITERAL_PREFIXES if len(w) == 2),
@@ -1959,7 +1959,7 @@ _DETAILS_TOKEN = _lazy_compile(r"<!--|<(/?)(details|script|style|textarea)(?=[\s
 def _details_inner_lines(analysis: dict) -> set[int] | None:
     """組になった <details> と </details> の間にある行の番号の集合。組が1つもなければ None。
 
-    開きと閉じは、HTML のブロックの行（引用の外）でだけ見る。段落の中、インラインのコード、コードの囲みとインデントした
+    開きと閉じは、HTML のブロックの行（引用の外）でだけ見る。段落の中、インラインのコード、コードブロックとインデントした
     コード、HTML のコメントの中の <details> は見ない。閉じは、まだ閉じていないいちばん新しい開きと組にする（入れ子）。
     組にならない開きと閉じは見ない（その範囲は今までどおり数える）。"""
     if not _DETAILS_HINT.search(analysis["text"]):
@@ -3417,7 +3417,7 @@ def _rule_penalty_score(findings: list[dict], prose_chars: int, dash_hits: int) 
 # 2.2.0 の語の規則（calque、metaphor_label、katakana_term、thin_evaluation）。どれも info で、置き換え先の語は出さない。
 # 行ごとに、地の文の見える文字（_prose_visible_text と同じ伏せ方）から、カギ括弧と引用符の中と、英数字の識別子（snake_case、
 # camelCase、ドットや / を含む語）を伏せて見る。コード、引用（> の行）、frontmatter、HTML は見ない。見出し、表、箇条書きは見る。
-# 1行に同じ規則の候補は1件まで。当たった語は候補の内部の欄 _words に入れる（語の一覧の allow.txt で外すため。出力には出ない）。
+# 1行に同じ規則の候補は1件まで。当たった語は候補の内部の欄 _words に入れる（用語リストの allow.txt で外すため。出力には出ない）。
 # 速さのため、文書全体に一度だけ、どれかの規則の手掛かりの語（_V220_TRIGGER_LITERALS と2つの一覧の語）を当て、
 # 当たった行と、見出しと1行目のうちラベルになりうる行だけを細かく見る。
 
@@ -5300,22 +5300,22 @@ def _v220_document_findings(analysis: dict, doc_type: str | None) -> list[dict]:
     return findings
 
 
-# 語の一覧の allow.txt の語で外す規則（規則ID の順。context.words.allow_removed の並び）
+# 用語リストの allow.txt の語で外す規則（規則ID の順。context.words.allow_removed の並び）
 _ALLOW_RULES = ("ai_phrase", "calque", "katakana_term", "metaphor_label", "metaphor_verb", "project_term", "renyo_noun",
                 "slop_vocabulary", "translated_term")
 _LABEL_WORD = _lazy_compile(r"「([^」]+)」")
-# 語の一覧の flag.txt の語の message。その行に出た flag の語を「語の一覧（flag.txt）の語（依存先、承認）」のように並べる
-_PROJECT_TERM_MESSAGE = "語の一覧（flag.txt）の語（{}）" + _V220_MESSAGE_TAIL
+# 用語リストの flag.txt の語の message。その行に出た flag の語を「用語リスト（flag.txt）の言葉（依存先、承認）」のように並べる
+_PROJECT_TERM_MESSAGE = "用語リスト（flag.txt）の言葉（{}）" + _V220_MESSAGE_TAIL
 # 3.0.0: flag-patterns.txt のパターンに当たった行の message。パターンだけなら名前を、flag.txt の語と同じ行なら両方を並べる
-_PROJECT_TERM_PATTERN_MESSAGE = "語の一覧（flag-patterns.txt）の語（{}）" + _V220_MESSAGE_TAIL
-_PROJECT_TERM_BOTH_MESSAGE = "語の一覧（flag.txt、flag-patterns.txt）の語（{}）" + _V220_MESSAGE_TAIL
+_PROJECT_TERM_PATTERN_MESSAGE = "用語リスト（flag-patterns.txt）の言葉（{}）" + _V220_MESSAGE_TAIL
+_PROJECT_TERM_BOTH_MESSAGE = "用語リスト（flag.txt、flag-patterns.txt）の言葉（{}）" + _V220_MESSAGE_TAIL
 
 
 def _project_term_message(words: Sequence[str], pattern_names: Collection[str], flag_hits: Collection[str] | None = None,
                           replacements: dict[str, str] | None = None) -> str:
     """project_term の message。words は行の語（flag.txt の語とパターンの名前）、pattern_names はそのうちのパターンの名前、
     flag_hits はそのうちの flag.txt の語（None なら、パターンの名前でない語）。パターンの名前と flag.txt の語が同じ字でも、
-    両方が当たった行では両方のファイルを並べる。replacements は flag.txt の語の使う語で、括弧の外の末尾に添え、
+    両方が当たった行では両方のファイルを並べる。replacements は flag.txt の語の推奨語で、括弧の外の末尾に添え、
     check が読む括弧の中は変えない。"""
     from_patterns = any(word in pattern_names for word in words)
     flag_words = [word for word in words if word not in pattern_names] if flag_hits is None else [word for word in words if word in flag_hits]
@@ -5328,7 +5328,7 @@ def _project_term_message(words: Sequence[str], pattern_names: Collection[str], 
         message = _PROJECT_TERM_BOTH_MESSAGE.format("、".join(words))
     replacements = replacements or {}
     suggestions = ["{} → {}".format(word, replacements[word]) for word in flag_words if word in replacements]
-    return message + ("使う語: " + "、".join(suggestions) + "。" if suggestions else "")
+    return message + ("推奨語: " + "、".join(suggestions) + "。" if suggestions else "")
 # 英数字で始まるか終わる語は、識別子（snake_case、camelCase、ドットや / を含む語）の一部では数えない
 _WORD_ASCII = _lazy_compile(r"[A-Za-z0-9_]")
 _WORD_BEFORE = r"(?<![A-Za-z0-9_./\\-])"
@@ -5378,17 +5378,17 @@ _REPLACEMENT_AFTER = _lazy_compile(_WORD_AFTER)
 
 
 def _replacement_bounded(text: str, start: int, replacement: str) -> bool:
-    """text の start にある使う語が、英数字の端で識別子や別の英単語（backend user の中の end user）の一部になって
-    いないか。flag.txt の語の端（_flag_pattern）と同じ境目を、使う語の端にも当てる。日本語の字の端では見分けない。"""
+    """text の start にある推奨語が、英数字の端で識別子や別の英単語（backend user の中の end user）の一部になって
+    いないか。flag.txt の語の端（_flag_pattern）と同じ境目を、推奨語の端にも当てる。日本語の字の端では見分けない。"""
     if _WORD_ASCII.match(replacement[0]) and not _REPLACEMENT_BEFORE.match(text, start):
         return False
     return not _WORD_ASCII.match(replacement[-1]) or bool(_REPLACEMENT_AFTER.match(text, start + len(replacement)))
 
 
 def _in_replacement(text: str, match: re.Match[str], replacements: dict[str, str]) -> bool:
-    """flag.txt の語の当たりが、その語の使う語の中に収まっているか。使う語が語を含む組（サーバ → サーバー、
-    問い合わせ → お問い合わせ）で、もう使う語で書いてある所を数えないために使う。英数字で始まるか終わる使う語は、
-    その端が語の境目にある所だけを使う語とみなす（_replacement_bounded）。"""
+    """flag.txt の語の当たりが、その語の推奨語の中に収まっているか。推奨語が語を含む組（サーバ → サーバー、
+    問い合わせ → お問い合わせ）で、もう推奨語で書いてある所を数えないために使う。英数字で始まるか終わる推奨語は、
+    その端が語の境目にある所だけを推奨語とみなす（_replacement_bounded）。"""
     word = match.group(0)
     replacement = replacements.get(word)
     if not replacement or word not in replacement:
@@ -5403,13 +5403,13 @@ def _in_replacement(text: str, match: re.Match[str], replacements: dict[str, str
 
 
 def _project_term_findings(analysis: dict, words: dict | None) -> list[dict]:
-    """語の一覧の flag.txt の語の候補（project_term）。見える文字（コード、URL、リンク先、HTML、frontmatter を伏せた行）に
+    """用語リストの flag.txt の語の候補（project_term）。見える文字（コード、URL、リンク先、HTML、frontmatter を伏せた行）に
     flag の語が出る行に1件。引用（> の行）とカギ括弧・二重カギ括弧の中は数えない。_words にその行の flag の語。
     3.0.0: flag-patterns.txt のパターンも同じ所に当て、当たったパターンの名前を _words に足す（flag の語のあと）。
     パターンごとの当たった文字列は内部の欄 _pattern_matches に入れる（allow.txt で外すため）。パターンは、一番上の選択肢の
-    どれかの必ず当たる字が全部ある行にだけ当てる。当たった flag.txt の語の使う語は内部の欄 _replacements に入れる
-    （allow.txt で一部の語を外したときに message を作り直すため）。使う語が語を含む組では、使う語の中に収まる当たりは
-    数えない（もう使う語で書いてある所に、同じ指摘を出さない）。"""
+    どれかの必ず当たる字が全部ある行にだけ当てる。当たった flag.txt の語の推奨語は内部の欄 _replacements に入れる
+    （allow.txt で一部の語を外したときに message を作り直すため）。推奨語が語を含む組では、推奨語の中に収まる当たりは
+    数えない（もう推奨語で書いてある所に、同じ指摘を出さない）。"""
     if not words or not (words.get("flag") or words.get("flag_patterns")):
         return []
     pattern = _flag_pattern(words["flag"]) if words.get("flag") else None
@@ -5450,7 +5450,7 @@ def _project_term_findings(analysis: dict, words: dict | None) -> list[dict]:
 
 
 def _apply_words(findings: list[dict], words: dict | None) -> tuple[list[dict], dict | None]:
-    """語の一覧の allow.txt の語で候補を外す。(残った候補, context に入れる words の値か None) を返す。
+    """用語リストの allow.txt の語で候補を外す。(残った候補, context に入れる words の値か None) を返す。
 
     外すのは _ALLOW_RULES の規則の候補で、候補の _words のどれかが allow の語と同じもの。残った候補の順は変えない。
     1行に1件で語を並べる規則（_ALLOW_PARTIAL_RULES）は、許した語だけを除き、許していない語が残れば候補を残して
@@ -5514,7 +5514,7 @@ def lint_text(text: str, *, doc_type: str | None = None, reader: str | None = No
 
     doc_type（文書の種類）を渡すと、DOC_TYPE_SKIP_RULES のその種類の規則の候補を除き、除いた件数を context に入れる。
     reader（読者）は context に入れるだけで、候補は変えない。値は中で正規化し、使えない値は ValueError。
-    words は語の一覧（allow.txt と flag.txt）。None なら一覧なしとして動く。"""
+    words は用語リスト（allow.txt と flag.txt）。None なら一覧なしとして動く。"""
     doc_type, reader = normalize_doc_type(doc_type), normalize_reader(reader)
     findings: list[dict] = []
     analysis = analyze_markdown(text)
@@ -5586,7 +5586,7 @@ def lint_text(text: str, *, doc_type: str | None = None, reader: str | None = No
     def _vocabulary_findings(plain_text: str, line_no: int, snippet: str) -> None:
         """AI頻出語彙と比喩動詞。見出しの行にも当てる（文頭と文末を前提にした型は当てない）。"""
         # スロップ語彙
-        # 語の一覧の allow.txt で外すため、候補の内部の欄 _words に当たった語（型の語は、型の名前と当たった文字列）を入れる
+        # 用語リストの allow.txt で外すため、候補の内部の欄 _words に当たった語（型の語は、型の名前と当たった文字列）を入れる
         slop_hits: list[tuple[str, tuple[str, ...]]]
         if narrowed is None:
             slop_hits = [(word, (word,)) for word in SLOP_WORDS if word in plain_text]
@@ -5750,7 +5750,7 @@ def lint_text(text: str, *, doc_type: str | None = None, reader: str | None = No
         _vocabulary_findings(plain_text, line_no, line.strip())
 
         # 英語直訳の語
-        # 同じ desc の型が2つ当たっても1件。当たった文字列は _words にまとめて残す（語の一覧の allow.txt で外すため）
+        # 同じ desc の型が2つ当たっても1件。当たった文字列は _words にまとめて残す（用語リストの allow.txt で外すため）
         if narrowed is None:
             translated_hits = ((desc, re.search(pattern, plain_text)) for pattern, desc in TRANSLATED_TERM_PATTERNS)
         else:
@@ -5946,7 +5946,7 @@ def lint_text(text: str, *, doc_type: str | None = None, reader: str | None = No
             elif rule not in DOC_TYPE_ONLY_RULES or doc_type in DOC_TYPE_ONLY_RULES[rule]:
                 kept.append(finding)
         findings = kept
-    # 語の一覧の allow.txt の語で外す候補。件数と点数を数える前に除く
+    # 用語リストの allow.txt の語で外す候補。件数と点数を数える前に除く
     findings, words_context = _apply_words(findings, words)
     # ダッシュの候補は、外したあとに残ったものの初めから DASH_FINDING_LIMIT 件だけを出し、点数には全部を数える
     dash_hits = 0
@@ -6037,7 +6037,7 @@ def _context_line(result: dict) -> str | None:
 
 
 def _words_line(result: dict) -> str | None:
-    """語の一覧を使ったときの行（種類か読者の4行目のあと。なければ4行目）。使わないときは None。"""
+    """用語リストを使ったときの行（種類か読者の4行目のあと。なければ4行目）。使わないときは None。"""
     words = (result.get("context") or {}).get("words")
     if not isinstance(words, dict):
         return None
@@ -6045,7 +6045,7 @@ def _words_line(result: dict) -> str | None:
 
 
 def render_report(result: Dict[str, Any]) -> str:
-    """通常の出力の全体（1〜3行目、種類か読者を指定したときの4行目、語の一覧を使ったときの行、候補があれば内訳と
+    """通常の出力の全体（1〜3行目、種類か読者を指定したときの4行目、用語リストを使ったときの行、候補があれば内訳と
     候補の並び）を返す。末尾に改行は付けない。"""
     header = "\n".join(_REPORT_HEADER).format(count=result["candidate_count"])
     for line in (_context_line(result), _words_line(result)):
@@ -6070,7 +6070,7 @@ _MEANING_RISK_MESSAGE = (
 _EXIT_CODES = """終了コード:
   0  検査を最後まで実行し、--strict と --fail-on の条件に当たらなかった（候補の有無によらない）。-h と --version も0
   1  --strict か --fail-on の条件に当たった
-  2  使い方か入力の誤り（ファイルを開けない、読まないファイル（作業フォルダの外、名前が点で始まる部分を含むパス）を渡した、UTF-8 として読めない、標準入力を読めない、使えない --fail-on、--doc-type、--reader の値、語の一覧を読めない（--words のフォルダがない、UTF-8 でない、1万行を超える、flag.txt か flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す）、--words と --no-words を一緒に指定した）
+  2  使い方か入力の誤り（ファイルを開けない、読まないファイル（作業フォルダの外、名前が点で始まる部分を含むパス）を渡した、UTF-8 として読めない、標準入力を読めない、使えない --fail-on、--doc-type、--reader の値、用語リストを読めない（--words のフォルダがない、UTF-8 でない、1万行を超える、flag.txt か flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す）、--words と --no-words を一緒に指定した）
   3  予期しない内部の誤り（標準エラーにトレースバックを出す）か、出力先が閉じられて結果を最後まで書けなかった"""
 
 
@@ -6150,20 +6150,20 @@ _PENALTY_HELP = """rule_penalty_score（--json の目安）:
 """
 
 
-_WORDS_HELP = ("語の一覧（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ。"
+_WORDS_HELP = ("用語リスト（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ。"
                "省くと、作業ディレクトリから上へたどった git の最上位"
-               "（.git のあるフォルダ。git の外では作業ディレクトリ）の .yomiyasu-words/ を探します（下の「語の一覧」）。"
+               "（.git のあるフォルダ。git の外では作業ディレクトリ）の .yomiyasu-words/ を探します（下の「用語リスト」）。"
                "linked worktree にこのフォルダがなければ、元の checkout の一覧を探します。")
-_WORDS_EPILOG = """語の一覧（--words、--no-words）:
+_WORDS_EPILOG = """用語リスト（--words、--no-words）:
   allow.txt の語は、次の規則の候補から外し、外した件数を出します: ai_phrase、calque、katakana_term、metaphor_label、
   metaphor_verb、project_term、renyo_noun、slop_vocabulary、translated_term。flag.txt の語には project_term（info）の
   指摘を出します。どちらも1行に1語（UTF-8。# で始まる行と空の行は読み飛ばします）。
-  flag.txt は「使わない語<TAB>使う語」とも書けます（<TAB> は実際のタブ文字）。TAB の左だけを探し、使う語も指摘に出します。
-  使う語は80字までで、使う語の中に TAB がある行（3列の行）は使えません。
+  flag.txt は「使わない語<TAB>推奨語」とも書けます（<TAB> は実際のタブ文字）。TAB の左だけを探し、推奨語も指摘に出します。
+  推奨語は80字までで、推奨語の中に TAB がある行（3列の行）は使えません。
   flag-patterns.txt（なくてもよい）には1行に「名前<TAB>正規表現」を書き、当たった行に、パターンの名前を入れた
   project_term（info）の指摘を出します。
 """
-_NO_WORDS_HELP = "語の一覧を探さず、読みません（--words と一緒には使えません）。"
+_NO_WORDS_HELP = "用語リストを探さず、読みません（--words と一緒には使えません）。"
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -6317,7 +6317,7 @@ def _run(argv: list[str] | None) -> int:
     if args.words is not None and args.no_words:
         parser.error("--words と --no-words は一緒に使えません")
     try:
-        # 語の一覧。読めない一覧は、入力を読む前に2で断る
+        # 用語リスト。読めない一覧は、入力を読む前に2で断る
         words = resolve_words(current_directory(), args.words, args.no_words)
     except WordsError as error:
         _error(str(error))

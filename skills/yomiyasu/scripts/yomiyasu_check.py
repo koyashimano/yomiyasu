@@ -153,7 +153,7 @@ _DEFAULT_TIMEOUT = 90          # 子プロセスの検査に使える秒数の�
 # OverflowError になるため（反証で見つけた例）。約11.6日なので、上限なしとみなしても違いは出ない
 _WAIT_LIMIT = 1000000
 _MATERIALS_VERSION_LINE = re.compile(r"^MATERIALS_FORMAT_VERSION\s*=\s*([0-9]+)\s*(?:#.*)?$", re.M)
-# 人が読む文に書く検査名（完了報告の4語）。状態の行の checks= と failed= は名前のまま
+# 人が読む文に書く検査名（完了報告の4語）。ステータス行の checks= と failed= は名前のまま
 _CHECK_LABELS = {"lint": "lint", "diff": "diff", "materials": "資料との照合"}
 # 意味が変わる恐れを出す検査。これが最後まで動かなかったときは meaning_risk= を出さない（0件と読めるため）
 _RISK_CHECKS = ("diff", "materials")
@@ -174,7 +174,7 @@ _NOT_JUDGED = ["meaning_preservation", "reader_comprehension"]
 
 _GITIGNORE = "# yomiyasu の検査記録。git に入れない。\n*\n"
 _DISCLAIMER = "この記録は検査を実行したことを示すだけで、意味が保たれたことや読みやすさの合格を示すものではありません。"
-_MATERIALS_DISCLAIMER = ("照らしたのは数値、名前、語、確度の語だけです。主張、条件、担当が資料どおりかは判定していません。"
+_MATERIALS_DISCLAIMER = ("照らしたのは数値、名前、言葉、確度の言葉だけです。主張、条件、担当が資料どおりかは判定していません。"
                          "資料と読み比べてください。")
 # 記録を書かないときの4行目（記録がないので「この結果は」）
 _UNRECORDED_DISCLAIMER = "この結果は検査を実行したことを示すだけで、意味が保たれたことや読みやすさの合格を示すものではありません。"
@@ -849,7 +849,7 @@ def _record_digest(record: dict) -> str:
 
 def _status_line(state: str, via: str, run_id: str | None = None, attempt: int | None = None, final: str | None = None, expected: str | None = None, mode: str | None = None, checks: str | None = None,
                  meaning_risk: int | str | None = None, replay: str | None = None, failed: str | None = None, reason: str | None = None, doc_type: str | None = None, reader: str | None = None) -> str:
-    """状態の行。キーの順は固定で、値に空白を入れない。読む側の正規表現は
+    """ステータス行。キーの順は固定で、値に空白を入れない。読む側の正規表現は
     ^yomiyasu-check: ([a-z_]+)((?: [a-z_]+=\\S+)*)$
     doc_type と reader は mode の次に、付けたときだけ出す。"""
     fields = [("via", via), ("run", run_id or "-"), ("attempt", str(attempt) if attempt else "-"), ("final", final or "-")]
@@ -1053,7 +1053,7 @@ class _Input(object):
         return "inputs/" + self.sha256 + ".bin"
 
     def token(self) -> str:
-        """状態の行の final=。標準入力は本文のハッシュで照らすので text-sha256: を付ける。"""
+        """ステータス行の final=。標準入力は本文のハッシュで照らすので text-sha256: を付ける。"""
         if self.via == "stdin":
             assert self.text_sha256 is not None
             return "text-sha256:" + self.text_sha256[:12]
@@ -1668,7 +1668,7 @@ def _materials_lines(diff_module: ModuleType, ctx: _Context) -> list[str]:
     dropped = [item["text"] + ("（{}の文）".format("、".join(item["values"])) if item.get("values") else "")
                for item in items if item.get("classification") == "dropped_certainty"]
     if dropped:
-        lines.append("- 資料にあった確度の語が最終稿にない: " + "、".join(dropped))
+        lines.append("- 資料にあった確度の言葉が最終稿にない: " + "、".join(dropped))
     if not rewrite:
         # 資料にあって最終稿にない数値は「参考」の1行（要約で省くのは正しいことが多いので候補にしない）。照合の items の
         # not_in_final から作る（diff の詰め。記録の照合の JSON だけから作り直せる）
@@ -1708,7 +1708,7 @@ class _Context(object):
         self.diff_risks: list[dict] | None = None       # diff の basis 入りの写し
         self.texts = {}              # 人が読む形（.txt に書く文。lint と diff は子の JSON から作ったもの）
         self.lint_findings = None    # lint の render_findings() の文
-        self.kept_marks = []         # 2.2.1: 最終稿に残った直訳語と語の一覧の語（_kept_marks。lint が動いたときに1回だけ作る）
+        self.kept_marks = []         # 2.2.1: 最終稿に残った直訳語と用語リストの語（_kept_marks。lint が動いたときに1回だけ作る）
         self.diff_parts: dict | None = None       # diff の report_parts()
         self.final_changed = False
         self.no_record = False
@@ -1717,11 +1717,11 @@ class _Context(object):
         self.treated: _Input | None = None              # 原文とみなした資料（新規作成）
         self.source_was_final = False    # 原文が、前に最終稿として検査した本文と同じ
         self.state_dir_option = None     # --state-dir で決めた状態フォルダ（{仕上げ} に書く）
-        self.doc_type = None             # 文書の種類と読者（正規化した値。lint と diff に渡し、記録と状態の行に残す）
+        self.doc_type = None             # 文書の種類と読者（正規化した値。lint と diff に渡し、記録とステータス行に残す）
         self.reader = None
-        self.words: dict | None = None                # 語の一覧の context.words の5つか7つのキー（使わないときは None。子に --words で渡す）
-        self.flag_replacements: dict[str, str] = {}    # flag.txt の使う語（記録の words には入れない）
-        self.kept_replacements: dict[str, str] = {}    # そのうち、最終稿の lint の指摘に添えた使う語（残した指摘の語に添える）
+        self.words: dict | None = None                # 用語リストの context.words の5つか7つのキー（使わないときは None。子に --words で渡す）
+        self.flag_replacements: dict[str, str] = {}    # flag.txt の推奨語（記録の words には入れない）
+        self.kept_replacements: dict[str, str] = {}    # そのうち、最終稿の lint の指摘に添えた推奨語（残した指摘の言葉に添える）
 
     @property
     def final(self) -> _Input:
@@ -1754,7 +1754,7 @@ class _Context(object):
 
     def risks_complete(self) -> bool:
         """意味が変わる恐れを出す検査（diff、資料との照合）がすべて最後まで動き、途中で最終稿が変わっていないか。そうでなければ、
-        件数は出さない（状態の行の meaning_risk= を0件と読ませない。反証で見つけた例。変わる前の最終稿で数えた件数を、今の最終稿の件数と読ませない）。"""
+        件数は出さない（ステータス行の meaning_risk= を0件と読ませない。反証で見つけた例。変わる前の最終稿で数えた件数を、今の最終稿の件数と読ませない）。"""
         return not self.final_changed and all(
             self.entries[name]["status"] == "ran" for name in self.required if name in _RISK_CHECKS)
 
@@ -1778,7 +1778,7 @@ def _context_arguments(doc_type: str | None, reader: str | None) -> list[str]:
 
 
 def _words_arguments(words: dict | None) -> list[str]:
-    """子の lint と diff に渡す語の一覧の引数。check が読んだ一覧の場所を --words で渡し、使わないときは --no-words
+    """子の lint と diff に渡す用語リストの引数。check が読んだ一覧の場所を --words で渡し、使わないときは --no-words
     （子が作業ディレクトリから探し直して、check と別の一覧を読まないように）。words は context.words の値か None。"""
     return ["--words", words["path"]] if words is not None else ["--no-words"]
 
@@ -1798,15 +1798,15 @@ _WORDS_PATTERN_KEYS = ("flag_patterns_lines", "flag_patterns_sha256")
 
 
 def _context_problem(parsed: dict, doc_type: str | None, reader: str | None, words: dict | None = None) -> str | None:
-    """子の JSON の context が、渡した種類と読者と語の一覧と合わないときの理由（合えば None）。lint の外した件数は整数に限る
-    （3行目に合計を書くため）。語の一覧は、check が読んだ中身（SHA-256）と子が読んだ中身が同じかも見る（間に書き換えられた一覧を
+    """子の JSON の context が、渡した種類と読者と用語リストと合わないときの理由（合えば None）。lint の外した件数は整数に限る
+    （3行目に合計を書くため）。用語リストは、check が読んだ中身（SHA-256）と子が読んだ中身が同じかも見る（間に書き換えられた一覧を
     使わない）。"""
     context = parsed["context"]
     if context.get("doc_type") != doc_type or context.get("reader") != reader:
         return "子の JSON の context が、渡した種類と読者と違います"
     found = _report_words(context)
     if (dict(found) if found is not None else None) != (dict(words) if words is not None else None):
-        return "子の JSON の context.words が、check が読んだ語の一覧と違います"
+        return "子の JSON の context.words が、check が読んだ用語リストと違います"
     skipped = context.get("skipped_by_doc_type", {})
     if parsed.get("format") == "yomiyasu-lint" and not (
             isinstance(skipped, dict) and all(type(value) is int and value >= 0 for value in skipped.values())):
@@ -1973,7 +1973,7 @@ def _review_count(section: object) -> int | None:
 
 def _fail_on_hits(ctx: _Context, diff_module: ModuleType) -> list[str]:
     """--fail-on に当たった値（指定した順）。meaning-risk は diff の FAIL_ON_KINDS（数値・否定・入れ替え・文の種類・引用の書き方・
-    確度の強まり・状態の語の消え・書き手の約束を足した書き換え・許可の言い方の変化・選ぶ範囲の入れ替え・関連から因果への強まり）と、新規作成の資料にない数値、warn と error は
+    確度の強まり・状態の言葉の消え・書き手の約束を足した書き換え・許可の言い方の変化・選ぶ範囲の入れ替え・関連から因果への強まり）と、新規作成の資料にない数値、warn と error は
     lint の候補で決める。diff の数え方は --doc-type で変わる（事実や仕様を述べる種類では、確度の2つも数える）。"""
     hits = []
     counts = (ctx.lint_result or {}).get("counts") or {}
@@ -2018,7 +2018,7 @@ def _treated_note(ctx: _Context) -> str:
 
 def _decide(ctx: _Context, recorded: bool, problem: str | None = None, attempt: int | None = None, run_id: str | None = None, fix_count: int = 0, same_as_previous: bool = False,
             denied: bool = False) -> tuple[str, str, str, str | None]:
-    """状態、1行目、next、状態の行を決める（1行目の表を上から当てはめる）。denied は、記録を書けなかった理由が
+    """状態、1行目、next、ステータス行を決める（1行目の表を上から当てはめる）。denied は、記録を書けなかった理由が
     書き込みの拒否（PermissionError）のときに真で、1行目に状態フォルダを分ける案内を足す。"""
     finalize = _finalize_text(ctx)
     failed = ctx.failed
@@ -2166,7 +2166,7 @@ def _summary_line(ctx: _Context, diff_module: ModuleType | None = None) -> str:
         assert ctx.lint_result is not None
         where = "最終稿"
         if ctx.doc_type is not None:
-            # 種類を付けたときだけ、種類と外した候補の数を書く。読者は検査を変えないので書かない（状態の行にはある）
+            # 種類を付けたときだけ、種類と外した候補の数を書く。読者は検査を変えないので書かない（ステータス行にはある）
             skipped = ctx.lint_result["context"].get("skipped_by_doc_type") or {}
             where += "、種類 {}、外した候補{}件".format(ctx.doc_type, sum(skipped.values()))
         parts.append("lint（{}）候補{}件".format(where, ctx.lint_result.get("candidate_count", 0)))
@@ -2203,44 +2203,44 @@ def _summary_line(ctx: _Context, diff_module: ModuleType | None = None) -> str:
 _HEAD_LIMIT = 3
 # 候補があるときに、冒頭の一覧のすぐ下に置く文（出力の冒頭だけを読んで、下の節を読まずに終えないため）
 _HEAD_NOTE = "候補の中身は下の節にあります。出力を切らずに読んでください。"
-# 2.2.1: 最終稿に残った直訳語（calque）と語の一覧（project_term）の語。lint の message から語を取る（「当たった言い方: 語、語）の
-# 候補です」と「語の一覧（flag.txt）の語（語、語）の候補です」。語に「）」があっても読めるよう、末尾の「）の候補です」まで取る。
-# 語に「、」がある語の一覧の語は分かれる）。run の「残した指摘の語」の節と冒頭の行、verify の行、記録の lint の要約に使う
+# 2.2.1: 最終稿に残った直訳語（calque）と用語リスト（project_term）の語。lint の message から語を取る（「当たった言い方: 語、語）の
+# 候補です」と「用語リスト（flag.txt）の言葉（語、語）の候補です」。語に「）」があっても読めるよう、末尾の「）の候補です」まで取る。
+# 語に「、」がある用語リストの語は分かれる）。run の「残した指摘の言葉」の節と冒頭の行、verify の行、記録の lint の要約に使う
 _KEPT_MARK_RULES = {"calque": ("直訳語", re.compile(r"当たった言い方: (.*)）の候補です")),
-                    "project_term": ("語の一覧", re.compile(
-                        r"語の一覧（flag(?:\.txt|-patterns\.txt|\.txt、flag-patterns\.txt)）の語（(.*)）の候補です"))}
-# 3.0.0: lint は project_term の message の末尾に「使う語: 語 → 使う語、…。」を足すことがある。語はこれより前から取る
-# （使う語は一覧を書いた人の文字列なので、「）の候補です」を含んでいても語の切り出しがずれないようにする）
-_PROJECT_TERM_SUGGESTIONS = "。使う語: "
-# lint が使う語を添えないときの project_term の message の結び（「）」と lint の _V220_MESSAGE_TAIL）。この結びで終わる
-# message は分けずに読む（語やパターンの名前に「。使う語: 」があっても、使う語のない一覧の読み方を 3.0.0 の前と変えない）
+                    "project_term": ("用語リスト", re.compile(
+                        r"用語リスト（flag(?:\.txt|-patterns\.txt|\.txt、flag-patterns\.txt)）の言葉（(.*)）の候補です"))}
+# 3.0.0: lint は project_term の message の末尾に「推奨語: 語 → 推奨語、…。」を足すことがある。語はこれより前から取る
+# （推奨語は一覧を書いた人の文字列なので、「）の候補です」を含んでいても語の切り出しがずれないようにする）
+_PROJECT_TERM_SUGGESTIONS = "。推奨語: "
+# lint が推奨語を添えないときの project_term の message の結び（「）」と lint の _V220_MESSAGE_TAIL）。この結びで終わる
+# message は分けずに読む（語やパターンの名前に「。推奨語: 」があっても、推奨語のない一覧の読み方を 3.0.0 の前と変えない）
 _PROJECT_TERM_PLAIN_TAIL = "）の候補です。文脈を見て、誰が何をどうするかを書き直すか確かめてください。"
 _KEPT_MARK_SHOWN_LINES = 5
 _KEPT_MARK_SHOWN_WORDS = 10
-_KEPT_MARK_HEAD = "残した指摘の語: {}。下の「■ 残した指摘の語」のとおり、書き直すか、尋ねるか、残す理由を書いてください。"
+_KEPT_MARK_HEAD = "残した指摘の言葉: {}。下の「■ 残した指摘の言葉」のとおり、書き直すか、尋ねるか、残す理由を書いてください。"
 _KEPT_MARK_SECTION = (
-    "■ 残した指摘の語（最終稿の直訳語と語の一覧の指摘。{count}語）\n"
+    "■ 残した指摘の言葉（最終稿の直訳語と用語リストの指摘。{count}語）\n"
     "{note}最終稿に残した次の語は、その文を SKILL.md Step 2 の問いで読み直し、書き直すか、残すなら次のどちらかにしてください。\n"
     "- {unsourced}前後の文と呼び名がそろわず"
     "同じものを指すか分からない: 本文を残し、「書き手に確かめたい点」で尋ねる（残す理由を書くだけにしない）。問いは3点までの決まりと"
     "選び方に従い、入らない分は「ほかに N か所」に数える。\n"
-    "- 直訳語の指摘で、その分野で定着した言い方か、文字どおりの意味（音、実物の場所など）: 残す理由を「残したAIっぽいところ」に書く。"
-    "語の一覧（flag.txt）の語は、定着した言い方でも残さない。\n"
-    "- 本文だけを返す指定では、確かめたい点も説明も付けないので、書き直せない語は本文のまま残す。")
+    "- 直訳語の指摘で、その分野で定着した言い方か、文字どおりの意味（音、実物の場所など）: 残す理由を「残したAI特有の表現」に書く。"
+    "用語リスト（flag.txt）の言葉は、定着した言い方でも残さない。\n"
+    "- 本文だけを返す指定では、確かめたい点も説明も付けないので、書き直せない言葉は本文のまま残す。")
 _KEPT_MARK_UNSOURCED = "書き直しに使う名前や動作、その動作をする人が、原文、依頼、提供資料、文脈のどれにも書いていないか、"
-# 3.0.0: lint の指摘に flag.txt の使う語を添えた run だけ、使う語を替える名前の出典に数える
-_KEPT_MARK_REPLACEMENT_NOTE = "flag.txt の使う語は、替える名前の出典にできます（references/calques.md 4章）。\n"
-_KEPT_MARK_UNSOURCED_WITH_REPLACEMENTS = ("書き直しに使う名前が flag.txt の使う語、原文、依頼、提供資料、文脈のどれにもないか、"
+# 3.0.0: lint の指摘に flag.txt の推奨語を添えた run だけ、推奨語を替える名前の出典に数える
+_KEPT_MARK_REPLACEMENT_NOTE = "flag.txt の推奨語は、替える名前の出典にできます（references/calques.md 4章）。\n"
+_KEPT_MARK_UNSOURCED_WITH_REPLACEMENTS = ("書き直しに使う名前が flag.txt の推奨語、原文、依頼、提供資料、文脈のどれにもないか、"
                                           "動作やその動作をする人が、原文、依頼、提供資料、文脈のどれにも書いていないか、")
-# 3.0.0: 語の一覧に flag-patterns.txt があった run だけ、2つ目の項目の「語の一覧（flag.txt）の語」のあとに足す
+# 3.0.0: 用語リストに flag-patterns.txt があった run だけ、2つ目の項目の「用語リスト（flag.txt）の言葉」のあとに足す
 _KEPT_MARK_PATTERNS_NOTE = "（flag-patterns.txt の語も同じ）"
-_KEPT_MARK_VERIFY = ("残した指摘の語: {}。完了報告を付けるときは、「書き手に確かめたい点」で尋ねたか（3点を超える分は「ほかに N か所」"
-                     "に数える）、残す理由を「残したAIっぽいところ」に書いたかを確かめてから提出してください。")
+_KEPT_MARK_VERIFY = ("残した指摘の言葉: {}。完了報告を付けるときは、「書き手に確かめたい点」で尋ねたか（3点を超える分は「ほかに N か所」"
+                     "に数える）、残す理由を「残したAI特有の表現」に書いたかを確かめてから提出してください。")
 
 
 def _kept_marks(findings: list[dict]) -> list[dict]:
-    """最終稿の lint の候補から、残った直訳語と語の一覧の語を語ごとにまとめ、最初に出た行の順に並べる
-    （[{"rule", "word", "lines"}]）。同じ語に語の一覧の印があれば rule は project_term（定着していても残さない決まりが先）。
+    """最終稿の lint の候補から、残った直訳語と用語リストの語を語ごとにまとめ、最初に出た行の順に並べる
+    （[{"rule", "word", "lines"}]）。同じ語に用語リストの印があれば rule は project_term（定着していても残さない決まりが先）。
     語の取れない message は word を None にして規則ごとにまとめる。行は集合で持つので、手間は候補の数に比例する
     （並べ替えを除く）。run では1回だけ呼び、ctx.kept_marks を使い回す。"""
     marks = {}
@@ -2272,8 +2272,8 @@ def _kept_marks(findings: list[dict]) -> list[dict]:
 
 
 def _kept_mark_replacements(findings: list[dict], replacements: dict[str, str]) -> dict[str, str]:
-    """lint の指摘の末尾に「使う語: 語 → 使う語、…。」と添えた語の使う語だけを返す。パターンだけに当たった名前は、
-    flag.txt の語と同じ字でも、ほかの語の使う語の一部に見えても添えない（「、」と「。」で区切った1組ずつと照らす）。"""
+    """lint の指摘の末尾に「推奨語: 語 → 推奨語、…。」と添えた語の推奨語だけを返す。パターンだけに当たった名前は、
+    flag.txt の語と同じ字でも、ほかの語の推奨語の一部に見えても添えない（「、」と「。」で区切った1組ずつと照らす）。"""
     kept = {}
     if not replacements:
         return kept
@@ -2296,7 +2296,7 @@ def _kept_mark_replacements(findings: list[dict], replacements: dict[str, str]) 
 
 
 def _kept_marks_text(marks: list[dict], replacements: dict[str, str] | None = None) -> str:
-    """「語（語の一覧か直訳語。行番号。使う語）」を「、」でつなぐ。使う語がなければ省き、行と語が多ければ初めだけを出す。"""
+    """「語（用語リストか直訳語。行番号。推奨語）」を「、」でつなぐ。推奨語がなければ省き、行と語が多ければ初めだけを出す。"""
     replacements = replacements or {}
     shown = []
     for mark in marks[:_KEPT_MARK_SHOWN_WORDS]:
@@ -2307,14 +2307,14 @@ def _kept_marks_text(marks: list[dict], replacements: dict[str, str] | None = No
         label = _KEPT_MARK_RULES[mark["rule"]][0]
         replacement = replacements.get(mark["word"]) if mark["rule"] == "project_term" else None
         shown.append("{}（{}{}{}）".format(mark["word"] if mark["word"] else "語の取れない指摘", label,
-                                         "。" + where if where else "", "。使う語: " + replacement if replacement else ""))
+                                         "。" + where if where else "", "。推奨語: " + replacement if replacement else ""))
     if len(marks) > _KEPT_MARK_SHOWN_WORDS:
         shown.append("ほか{}語".format(len(marks) - _KEPT_MARK_SHOWN_WORDS))
     return "、".join(shown)
 
 
 def _record_kept_marks(record: dict) -> list[dict] | None:
-    """記録の lint の要約にある、残した指摘の語（2.2.1 より前の記録や、lint が動かなかった記録では None）。"""
+    """記録の lint の要約にある、残した指摘の言葉（2.2.1 より前の記録や、lint が動かなかった記録では None）。"""
     if record is None:
         return None
     for entry in record["checks"]:
@@ -2328,7 +2328,7 @@ def _record_kept_marks(record: dict) -> list[dict] | None:
 # 構造の文の中の行番号（「後3行目」を先に、なければ「元3行目」）
 _HEAD_STRUCTURE_LINE = (re.compile(r"(後)(\d+)行目"), re.compile(r"(元)(\d+)行目"))
 _HEAD_RULE_NAMES = (("structure", "構造"), ("logic", "つながり"), ("endings.changes", "文末の種類"),
-                    ("type_changes", "文の種類を表す語"), ("endings.flags", "文末の立場"), ("bold", "太字"))
+                    ("type_changes", "文の種類を表す言葉"), ("endings.flags", "文末の立場"), ("bold", "太字"))
 
 
 def _head_where(old_line: int | None, new_line: int | None) -> str:
@@ -2362,7 +2362,7 @@ def _head_part(label: str, entries: list, total: int) -> str:
 
 def _materials_line_names(result: dict) -> list:
     """照合の candidate_count に数える、節の見直し候補の行の、冒頭の一覧での名前（ground と同じ条件で、行の順に）。
-    新規作成の「資料にない語」、確度の語、推敲の「資料に基づく補足の候補」の3つ。「参考」の行は数えない。"""
+    新規作成の「資料にない語」、確度の言葉、推敲の「資料に基づく補足の候補」の3つ。「参考」の行は数えない。"""
     items = result.get("items") or []
     rewrite = result.get("mode") == "rewrite"
     names = []
@@ -2372,7 +2372,7 @@ def _materials_line_names(result: dict) -> list:
                            for item in items):
         names.append("資料にない語")
     if any(item.get("classification") == "dropped_certainty" for item in items):
-        names.append("最終稿にない確度の語")
+        names.append("最終稿にない確度の言葉")
     return names
 
 
@@ -2705,7 +2705,7 @@ def _sections(ctx: _Context, lint_module: ModuleType, diff_module: ModuleType) -
             count=len(kept), note=_KEPT_MARK_REPLACEMENT_NOTE if replaced else "",
             unsourced=_KEPT_MARK_UNSOURCED_WITH_REPLACEMENTS if replaced else _KEPT_MARK_UNSOURCED)
         if ctx.words is not None and ctx.words.get("flag_patterns_sha256") is not None:
-            section = section.replace("語の一覧（flag.txt）の語は、", "語の一覧（flag.txt）の語" + _KEPT_MARK_PATTERNS_NOTE + "は、", 1)
+            section = section.replace("用語リスト（flag.txt）の言葉は、", "用語リスト（flag.txt）の言葉" + _KEPT_MARK_PATTERNS_NOTE + "は、", 1)
         sections.append(section + "\n"
                         + "\n".join("- " + _kept_marks_text([mark], ctx.kept_replacements) for mark in kept))
     parts = ctx.diff_parts
@@ -2964,7 +2964,7 @@ def _timeout(raw: str | None) -> tuple[float | None, str | None]:
 
 
 def _result_context(ctx: _Context) -> dict:
-    """run の --json の context（種類と読者。語の一覧を使ったときだけ words の5つのキーを足す）。"""
+    """run の --json の context（種類と読者。用語リストを使ったときだけ words の5つのキーを足す）。"""
     context = OrderedDict((("doc_type", ctx.doc_type), ("reader", ctx.reader)))
     if ctx.words is not None:
         context["words"] = OrderedDict(ctx.words.items())
@@ -2988,7 +2988,7 @@ def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
 
 
 def _resolve_words(args: argparse.Namespace, parser: argparse.ArgumentParser, cwd: str) -> tuple[dict | None, str | None]:
-    """--words と --no-words から語の一覧を決める（run と start）。(読み込んだ一覧か None, 誤りの文か None)。
+    """--words と --no-words から用語リストを決める（run と start）。(読み込んだ一覧か None, 誤りの文か None)。
     両方の指定は使い方の誤り（parser.error で2）。"""
     if args.words is not None and args.no_words:
         parser.error("--words と --no-words は一緒に使えません")
@@ -3040,7 +3040,7 @@ def _run_impl(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         return 2
     # 作業ディレクトリは記録の cwd に入れる。消えていれば、何も書かずに2（_run_cli が受ける。反証で見つけた例）
     cwd = _getcwd()
-    # 語の一覧。子を動かす前に check が探して読み、読めなければ何も書かずに2。子には読んだ場所を --words で渡す
+    # 用語リスト。子を動かす前に check が探して読み、読めなければ何も書かずに2。子には読んだ場所を --words で渡す
     words, problem = _resolve_words(args, parser, cwd)
     if problem:
         _error(problem)
@@ -3103,7 +3103,7 @@ def _run_impl(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
            for item, compact in zip(ctx.materials, compacts)):
         # 資料と最終稿が同じファイルか同じ本文なら、照合が空回りする（推敲でも新規作成でも2）。空白、全角と半角、
         # 書式の文字だけが違う写しも同じ本文とみなす（似かたと同じ下ごしらえ。反証で見つけた例）。
-        # 推敲で、出典つきの区切りの資料（抜き書き）だけは除く。短い原稿を根拠の文どおりに直すと、根拠の文と
+        # 推敲で、出典つきの区切りの資料（抜粋）だけは除く。短い原稿を根拠の文どおりに直すと、根拠の文と
         # 最終稿が同じになることがあるため（載せ替えの反証で見つけた例）
         _error(_SAME_AS_FINAL_ERROR)
         return 2
@@ -3129,7 +3129,7 @@ def _run_impl(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     options = OrderedDict((("stance", stance), ("fail_on", list(fail_on)), ("timeout", timeout),
                            ("doc_type", doc_type), ("reader", reader), ("fact_gaps", args.fact_gaps)))
     if ctx.words is not None:
-        # 語の一覧（2.2.0 で足した）。使ったときだけ、context.words と同じ5つのキーを後ろに足す（RECORD_FORMAT_VERSION は1のまま）。
+        # 用語リスト（2.2.0 で足した）。使ったときだけ、context.words と同じ5つのキーを後ろに足す（RECORD_FORMAT_VERSION は1のまま）。
         # verify --replay は、この場所を --words で渡す（ないときは --no-words）
         options["words"] = OrderedDict(ctx.words.items())
 
@@ -3228,7 +3228,7 @@ def _run_impl(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     changed_sections, changed_places = _changed_places(ctx, diff_module, recording)
     if status == "partial":
         # 終了コード3のときは標準エラーにも出す（止まった検査と、子の標準エラーの先頭）。標準出力より先に書き、
-        # 2>&1 でまとめて読んだときも、パイプと端末のどちらでも最後の行が状態の行になるようにする
+        # 2>&1 でまとめて読んだときも、パイプと端末のどちらでも最後の行がステータス行になるようにする
         _error("yomiyasu_check.py: " + line)
         for name, entry in ctx.entries.items():
             if entry["status"] != "ran":
@@ -3271,9 +3271,9 @@ def _run_impl(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         sections = changed_sections + _sections(ctx, lint_module, diff_module)
         # 記録を書かないときの断りの行（候補がなければ4行目）は「この結果は」（記録がないため）
         disclaimer = _DISCLAIMER if recording else _UNRECORDED_DISCLAIMER
-        # 語の一覧を使ったときだけ、記録の行のあとに一覧の行を足す
+        # 用語リストを使ったときだけ、記録の行のあとに一覧の行を足す
         words_lines = [words_label(ctx.words)] if ctx.words is not None else []
-        # 候補があるときは、3行目のすぐあとに候補の短い一覧と案内を足す（2行目の状態の行と3行目は動かさない）
+        # 候補があるときは、3行目のすぐあとに候補の短い一覧と案内を足す（2行目のステータス行と3行目は動かさない）
         assert token is not None
         text = "\n".join([line, token, _summary_line(ctx, diff_module)] + _head_lines(ctx, diff_module)
                          + [disclaimer, record_line] + words_lines
@@ -3411,7 +3411,7 @@ class _Target(object):
         self.text_sha256 = _text_sha256(text) if text is not None else None
 
     def token(self) -> str:
-        """状態の行の final=。ファイルはバイト列の SHA-256、標準入力は本文のハッシュ。"""
+        """ステータス行の final=。ファイルはバイト列の SHA-256、標準入力は本文のハッシュ。"""
         if self.via == "stdin":
             assert self.text_sha256 is not None
             return "text-sha256:" + self.text_sha256[:12]
@@ -3844,7 +3844,7 @@ def _record_shape(record: dict) -> list[str]:
     if isinstance(options, dict):
         need(type(options.get("fact_gaps", False)) is bool, "options.fact_gaps")
         if "words" in options:
-            # 語の一覧（2.2.0 で足した。使った記録にだけある）
+            # 用語リスト（2.2.0 で足した。使った記録にだけある）
             need(_words_shape(options["words"]), "options.words")
         gaps = record.get("fact_gaps")
         if options.get("fact_gaps"):
@@ -3914,7 +3914,7 @@ def _words_shape(words: object) -> bool:
 
 
 def _record_words(record: dict) -> dict | None:
-    """記録の options.words（語の一覧を使わなかった記録と、このキーを足す前の記録は None）。"""
+    """記録の options.words（用語リストを使わなかった記録と、このキーを足す前の記録は None）。"""
     words = record["options"].get("words")
     return words if isinstance(words, dict) else None
 
@@ -4070,7 +4070,7 @@ def _summary_problems(state: str, record: dict, required: list[str]) -> list[str
             # --replay なしでも見つける。context のないレポートは種類と読者のオプションを足す前のもので、値なしとして読む）
             found = context_value if isinstance(context_value := value.get("context"), dict) else {}
             compare(name + ".context", context, [found.get("doc_type"), found.get("reader")])
-            # 語の一覧（使わなかった記録とレポートは、どちらも None）
+            # 用語リスト（使わなかった記録とレポートは、どちらも None）
             recorded_words, report_words = _record_words(record), _report_words(found)
             compare(name + ".context.words", dict(recorded_words) if recorded_words is not None else None,
                     dict(report_words) if report_words is not None else None)
@@ -4151,7 +4151,7 @@ def _replay(state: str, record: dict, timeout: float) -> tuple[list[tuple[str, s
         # 子には写しのフォルダを作業フォルダにして、ファイルの名前で渡す（run の _run_checks と同じ。3.0.0）
         return item["sha256"] + ".bin"
 
-    # 記録と同じ種類と読者と語の一覧を付ける（付けないと lint のレポートが合わない）。語の一覧は記録の場所を渡し、
+    # 記録と同じ種類と読者と用語リストを付ける（付けないと lint のレポートが合わない）。用語リストは記録の場所を渡し、
     # 一覧を使わなかった記録は --no-words（verify の作業ディレクトリから探し直さない）
     context = _context_arguments(*_record_context(record)) + _words_arguments(_record_words(record))
     commands = OrderedDict()
@@ -4580,7 +4580,7 @@ def _verify(args: argparse.Namespace, parser: argparse.ArgumentParser, _final: _
                 if recorded is not None and not _same_path(recorded, final.path):
                     problems.append(("final_path_differs", "記録の最終稿のパス: " + recorded))
 
-    # 4. 出力する（1行目に次の行動、2行目に状態の行、3行目に記録のパス。executed だけ4行目に件数）
+    # 4. 出力する（1行目に次の行動、2行目にステータス行、3行目に記録のパス。executed だけ4行目に件数）
     # 記録の mode、checks、meaning_risk を出すのは、記録の形と digest を確かめられたときだけ。
     # meaning_risk は、意味が変わる恐れを出す検査（diff、資料との照合）がすべて ran のときだけ出す（0件と読ませない。反証で見つけた例）
     # 人が読む1行目の検査名は完了報告の語にする（materials は「資料との照合」。反証で見つけた例）
@@ -4634,7 +4634,7 @@ def _verify(args: argparse.Namespace, parser: argparse.ArgumentParser, _final: _
     if shown:
         assert record is not None
     required = _required_for(record) if shown and record is not None else None
-    # 記録の種類と読者（状態の行と JSON に出す。記録の形を確かめられたときだけ）
+    # 記録の種類と読者（ステータス行と JSON に出す。記録の形を確かめられたときだけ）
     doc_type, reader = _record_context(record) if shown and record is not None else (None, None)
     replay_field = None
     if status == "executed" or status == "not_reproducible" or replayed == "timeout":
@@ -4655,7 +4655,7 @@ def _verify(args: argparse.Namespace, parser: argparse.ArgumentParser, _final: _
         record_line = _NO_RECORD_LINE.format(state)
     final_count = _record_summary_count(record if shown else None, "lint", "candidate_count")
     changed_count = _record_summary_count(record if shown else None, "diff", "hunk_count")
-    # 2.2.1: 記録の要約にある、残した指摘の語（照合が合ったときだけ出す）
+    # 2.2.1: 記録の要約にある、残した指摘の言葉（照合が合ったときだけ出す）
     kept_marks = _record_kept_marks(record) if shown and record is not None and status == "executed" else None
     if args.json or _return:
         final_record = found.final() if found is not None else None
@@ -5120,7 +5120,7 @@ def _management(command: str, args: argparse.Namespace, parser: argparse.Argumen
         if problem:
             parser.error(problem)
     if command == "start":
-        # 語の一覧（run と同じ探し方）。読めなければ、状態フォルダを決める前に2で断る
+        # 用語リスト（run と同じ探し方）。読めなければ、状態フォルダを決める前に2で断る
         words, problem = _resolve_words(args, parser, _getcwd())
         if problem:
             _error(problem)
@@ -5161,7 +5161,7 @@ def _management(command: str, args: argparse.Namespace, parser: argparse.Argumen
                   "final_path": args.final and entry["targets"]["final"], "limits": limits, "deadline": entry["deadline"]}
         lines = [message, token, "登録: " + path]
         if words is not None:
-            # 語の一覧を使ったときだけ（run に付ける場所を示す）
+            # 用語リストを使ったときだけ（run に付ける場所を示す）
             result["words"] = words_context(words)
             lines.append(words_label(result["words"]))
         print(json.dumps(result, ensure_ascii=True, indent=1) if args.json else "\n".join(lines))
@@ -5228,8 +5228,8 @@ _RECORD_NOTE = ("記録はこのコマンドだけが作ります。同じ権限
                 "見つけるためのもので、改ざんの防止や人の承認の証明にはなりません。")
 _EXIT_CODES = """終了コード:
   0  run: 検査を最後まで実行し、--fail-on の条件に当たらなかった（状態 executed か unrecorded。候補の有無によらない）。verify: 記録と照合が合った（executed）。-h と --version も0。start: 登録した（started）。export: 写しを書いた（exported）。end: 登録を終えた（ended）
-  1  run: --fail-on の条件に当たった（記録は残す）。verify: 記録がない、または記録と合わない（理由は2行目の状態の行と --json の problems）。run: 登録の上限で実行しなかった（unverified）。export: 照合が合わない。end: 登録がない
-  2  使い方か入力の誤り（ファイルを開けない、読まないファイル（作業フォルダの外、名前が点で始まる部分を含むパス）を渡した、UTF-8 として読めない、区切りの誤り、使えない値、原文と最終稿が同じファイル、資料と最終稿が同じ中身、空の最終稿、別の原文の実行ID、語の一覧を読めない（--words のフォルダがない、UTF-8 でない、1万行を超える、flag.txt か flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す）、--words と --no-words を一緒に指定した）。何も書かない（状態 not_run）
+  1  run: --fail-on の条件に当たった（記録は残す）。verify: 記録がない、または記録と合わない（理由は2行目のステータス行と --json の problems）。run: 登録の上限で実行しなかった（unverified）。export: 照合が合わない。end: 登録がない
+  2  使い方か入力の誤り（ファイルを開けない、読まないファイル（作業フォルダの外、名前が点で始まる部分を含むパス）を渡した、UTF-8 として読めない、区切りの誤り、使えない値、原文と最終稿が同じファイル、資料と最終稿が同じ中身、空の最終稿、別の原文の実行ID、用語リストを読めない（--words のフォルダがない、UTF-8 でない、1万行を超える、flag.txt か flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す）、--words と --no-words を一緒に指定した）。何も書かない（状態 not_run）
   3  検査の一部を実行できなかった（lint か diff が内部の誤りか時間切れで終わらなかった、途中で最終稿が変わった。状態 partial）か、check の予期しない内部の誤り、出力先が閉じられて結果を最後まで書けなかった"""
 _USAGE = ("yomiyasu_check.py run --final 最終稿 (--source 原文 | --material 資料) [オプション]\n"
           "       yomiyasu_check.py run --stdin [オプション]\n"
@@ -5246,8 +5246,8 @@ _RUN_USAGE = ("yomiyasu_check.py run --final 最終稿 (--source 原文 | --mate
 _VERIFY_USAGE = ("yomiyasu_check.py verify --final 最終稿|- [--run-id ID] [--source 原文] [--since ISO8601]\n"
                  "           [--replay] [--timeout 秒] [--state-dir DIR] [--json]")
 _FAIL_ON_HELP = ("指定した条件に当たれば、記録を残したうえで終了コード1で終わります。何度でも、カンマ区切りでも指定できます。"
-                 "meaning-risk: 意味が変わる恐れのうち、数値、否定、主語と目的語の入れ替え、文の種類（問いと平叙、文の種類を表す語）の"
-                 "変化、引用の書き方の変化、確度を強めた書き換え（見込み → 予定、と思われる → 断定など）、原文の状態の語（未定、未確認、"
+                 "meaning-risk: 意味が変わる恐れのうち、数値、否定、主語と目的語の入れ替え、文の種類（問いと平叙、文の種類を表す言葉）の"
+                 "変化、引用の書き方の変化、確度を強めた書き換え（見込み → 予定、と思われる → 断定など）、原文の状態の言葉（未定、未確認、"
                  "調査中など）が消えた書き換え、原文にない書き手の約束・保証・再発防止の誓いを足した書き換え、許可の言い方（してよい、"
                  "してもよい、構わない）が消えたか増えた書き換え、関連・相関を述べた原文の文に因果の言い方（因果、原因、引き起こす など）を"
                  "足した書き換え、選ぶ範囲が入れ替わった書き換え（または・どちらか → 両方・すべて、またはその逆）、同じ数に付いた"
@@ -5255,7 +5255,7 @@ _FAIL_ON_HELP = ("指定した条件に当たれば、記録を残したうえ�
                  "--doc-type が pr、article、incident、proposal、manual、formal、paper の"
                  "ときは「場合がある」の言い切りと「必ず」などを足した書き換え（ここまでは diff の "
                  "--fail-on=meaning-risk と同じ）と、新規作成で資料にない数値。コード・URL・引用ブロックなど変えない箇所の変化と、資料にない名前は数えません。"
-                 "否定対比の主張の逆転と、元にない気持ちの語も数えません。確度を弱めた書き換え、数えない語だけの確度の変化、予定の言い切り（する予定です → します）、"
+                 "否定対比の主張の逆転と、元にない気持ちの言葉も数えません。確度を弱めた書き換え、数えない語だけの確度の変化、予定の言い切り（する予定です → します）、"
                  "かぎかっこの中の言葉の変化も数えません。原文にない因果のつながりを足した書き換えと、書き手の行為と読む言い方（いたします、今後・改めて、"
                  "弊社などの主語）のない「〜します」を足した書き換えと、事実の穴の候補（--fact-gaps）も数えません。"
                  "warn: lint の warn か error の候補。error: lint の error の候補。"
@@ -5292,13 +5292,13 @@ class _HelpFormatter(argparse.RawDescriptionHelpFormatter):
         return super().add_usage(usage, actions, groups, prefix)
 
 
-_WORDS_HELP = ("語の一覧（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ。"
+_WORDS_HELP = ("用語リスト（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ。"
                "省くと、作業ディレクトリから上へたどった git の最上位"
                "（.git のあるフォルダ。git の外では作業ディレクトリ）の .yomiyasu-words/ を探します（lint、diff と同じ）。"
                "linked worktree にこのフォルダがなければ、元の checkout の一覧を探します。"
                "check が探して読み、lint と diff にこの場所を渡して、記録に場所と語の数と SHA-256 を残します。"
                "読めない一覧は終了コード2で、何も書きません。")
-_NO_WORDS_HELP = "語の一覧を探さず、読みません（--words と一緒には使えません）。"
+_NO_WORDS_HELP = "用語リストを探さず、読みません（--words と一緒には使えません）。"
 
 
 def _add_words_options(group: argparse._ActionsContainer) -> None:
@@ -5328,7 +5328,7 @@ def _build_parser() -> tuple[_ArgumentParser, argparse.ArgumentParser, argparse.
     inputs.add_argument("--source", "--original", dest="source", action="append", metavar="原文",
                         help="推敲で、書き直す前の原文のファイル。最終稿と別のファイルにしてください。")
     inputs.add_argument("--material", "--materials", dest="materials", action="append", metavar="資料",
-                        help="提供された資料のファイル。何度でも指定できます。最終稿の数値、名前、語、確度の語を資料と照らします。")
+                        help="提供された資料のファイル。何度でも指定できます。最終稿の数値、名前、言葉、確度の言葉を資料と照らします。")
     inputs.add_argument("--stdin", action="store_true",
                         help="ファイルを作らない対話のため、原文（か資料）と最終稿を標準入力から読みます。"
                              "行全体が <<<yomiyasu:original>>>、<<<yomiyasu:material 出典>>>、<<<yomiyasu:final>>> の行で区切ります。出典は省略可、200字まで（>>> を含めない）。--material のファイルと - の中身も同じ資料の区切りを使えます。"
@@ -5340,7 +5340,7 @@ def _build_parser() -> tuple[_ArgumentParser, argparse.ArgumentParser, argparse.
     options.add_argument("--stance", metavar="立場",
                          help="文書の立場（diff と同じ）。勧め（読み手に勧める）、決まり（手順）、説明（報告、体験）のどれか。")
     options.add_argument("--doc-type", metavar="種類",
-                         help="文書の種類。lint と diff に渡し、記録と状態の行に残します。lint は、その種類で普通な書き方を"
+                         help="文書の種類。lint と diff に渡し、記録とステータス行に残します。lint は、その種類で普通な書き方を"
                               "候補にする規則を外します（yomiyasu_lint.py -h の一覧）。差分（意味が変わる恐れと規則の見直し候補）の"
                               "見つけ方と、資料との照合の判定は変わりません。"
                               # yomiyasu_diff.py の _counted_doc_type_help() と同じ文（diff を読み込まずにヘルプを出すため、ここに書く）
@@ -5355,7 +5355,7 @@ def _build_parser() -> tuple[_ArgumentParser, argparse.ArgumentParser, argparse.
                               "太字だけの行も勢いの検査の見出しに数えます。mail だけ敬語の度合いを検査します。値: "
                               + "、".join("{}（{}）".format(row[0], row[1]) for row in DOC_TYPES) + "。")
     options.add_argument("--reader", metavar="読者",
-                         help="想定する読者の知識。lint と diff に渡し、記録と状態の行に残します。判定は変わりません。")
+                         help="想定する読者の知識。lint と diff に渡し、記録とステータス行に残します。判定は変わりません。")
     options.add_argument("--fail-on", action="append", dest="fail_on", metavar="meaning-risk|warn|error",
                          help=_FAIL_ON_HELP)
     options.add_argument("--timeout", metavar="秒",
@@ -5451,7 +5451,7 @@ def _build_parser() -> tuple[_ArgumentParser, argparse.ArgumentParser, argparse.
                                  help="登録からの期限（既定30分、1〜240）。")
             # start は lint と diff を動かさないが、run と同じ引数を受け、一覧が読めるかを登録の前に確かめる
             options.add_argument("--words", metavar="フォルダ",
-                                 help="語の一覧のフォルダ（run と同じ探し方）。登録の前に読めるかを確かめ、読めなければ"
+                                 help="用語リストのフォルダ（run と同じ探し方）。登録の前に読めるかを確かめ、読めなければ"
                                       "終了コード2で何も書きません。run にはこの値を付けてください（登録には残しません）。")
             options.add_argument("--no-words", action="store_true", help=_NO_WORDS_HELP)
         additions[name] = sub

@@ -4,7 +4,7 @@
 出力を head や sed -n '1,3p' で切って読むと、「■ 表現・書式の見直し候補」などの節が落ち、どの行のどの規則に当たったかが
 分からなかった。候補があるときだけ、3行目（実行した検査の要約）のすぐあとに、検査ごとの短い一覧（「lint の候補: …」
 「diff の候補: …」。並べるのは検査ごとに3件までで、残りは「ほかN件」）と、「候補の中身は下の節にあります。
-出力を切らずに読んでください。」の2行を足す。候補がないときは何も足さない。2行目の状態の行と3行目は変えない。
+出力を切らずに読んでください。」の2行を足す。候補がないときは何も足さない。2行目のステータス行と3行目は変えない。
 --json、記録のファイル、verify の出力は変えない。文はすべて合成の文。
 """
 
@@ -60,13 +60,13 @@ def call(main, argv, stdin=None):
 
 class HeadLinesTest(CheckCase):
     def assert_head(self, lines):
-        """候補があるときの頭の5行: 1行目の案内、2行目の状態の行、3行目の要約、4行目の一覧、5行目の案内。"""
+        """候補があるときの頭の5行: 1行目の案内、2行目のステータス行、3行目の要約、4行目の一覧、5行目の案内。"""
         self.assertTrue(lines[1].startswith(STATUS_HEAD), lines[:5])
         self.assertTrue(lines[2].startswith("実行した検査: "), lines[:5])
         self.assertEqual(lines[4], RUN_HEAD_NOTE, lines[:5])
         self.assertEqual(lines[5], RUN_DISCLAIMER)
         self.assertTrue(lines[6].startswith("記録: "), lines[:7])
-        # 最後の2行は1行目と状態の行のまま
+        # 最後の2行は1行目とステータス行のまま
         self.assertEqual(lines[-2:], lines[:2])
 
     def test_lint_rules_and_line_numbers_are_in_the_first_five_lines(self):

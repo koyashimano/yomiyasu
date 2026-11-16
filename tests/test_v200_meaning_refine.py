@@ -314,7 +314,7 @@ class NegationDetailTest(unittest.TestCase):
 
 class GroundTest(unittest.TestCase):
     """38: 資料にあって最終稿にない数値を、照合の items に not_in_final として入れる。
-    39、46: 照合の数値の表記の違い、名前・語・確度の語の部分一致。"""
+    39、46: 照合の数値の表記の違い、名前・語・確度の言葉の部分一致。"""
 
     def test_not_in_final_numbers(self):
         result = yomiyasu_diff.ground("保存期間は3日です。\n", ["保存期間は3日、件数は10件、期限は14日。\n"])
@@ -353,7 +353,7 @@ class GroundTest(unittest.TestCase):
 
 
 class FeelingTest(unittest.TestCase):
-    """10.6 B2、目標の D-1: 元の文にない気持ちの語を足した書き換えを kind feeling の候補にする（--fail-on には数えない）。"""
+    """10.6 B2、目標の D-1: 元の文にない気持ちの言葉を足した書き換えを kind feeling の候補にする（--fail-on には数えない）。"""
 
     FOUND = (
         ("設定を変更した。", "設定を変更して、ほっとした。", "ほっと"),
@@ -364,10 +364,10 @@ class FeelingTest(unittest.TestCase):
         ("駅まで歩いた。", "駅まで歩きながら、少し寂しくなった。", "寂し"),
     )
     NOT_FOUND = (
-        # 原文にもある気持ちの語を言い直しただけ
+        # 原文にもある気持ちの言葉を言い直しただけ
         ("移行が終わって、ほっとした。", "移行を終えて、ほっとした。"),
         ("合格の知らせを聞いて、うれしかった。", "合格の知らせに、うれしくなった。"),
-        # 気持ちの語でない（不安定、心配りでない語）
+        # 気持ちの言葉でない（不安定、心配りでない語）
         ("接続が切れることがある。", "接続が不安定なことがある。"),
         ("壊れた部品を替えた。", "こわれた部品を替えた。"),
         # 気持ちを足さない普通の推敲
@@ -393,7 +393,7 @@ class FeelingTest(unittest.TestCase):
                 self.assertNotIn("feeling", kinds(before, after))
 
     def test_list_files_match_the_builtin_list(self):
-        """気持ちの語の一覧は references/lists/feelings.txt（ルートと skills の両方）。内蔵の一覧と同じ（ない環境でも同じに動く）。"""
+        """気持ちの言葉の一覧は references/lists/feelings.txt（ルートと skills の両方）。内蔵の一覧と同じ（ない環境でも同じに動く）。"""
         for base in (ROOT / "references" / "lists", ROOT / "skills" / "yomiyasu" / "references" / "lists"):
             with self.subTest(base=str(base)):
                 text = (base / "feelings.txt").read_text(encoding="utf-8")
@@ -401,7 +401,7 @@ class FeelingTest(unittest.TestCase):
 
     def test_report_line(self):
         report = yomiyasu_diff.report(result_of("設定を変更した。", "設定を変更して、ほっとした。")).split("\n")
-        index = report.index("- 元にない気持ちの語（1行目）: ほっと")
+        index = report.index("- 元にない気持ちの言葉（1行目）: ほっと")
         self.assertEqual(report[index + 1:index + 3], ["  元: 設定を変更した。", "  後: 設定を変更して、ほっとした。"])
 
 

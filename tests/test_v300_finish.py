@@ -38,19 +38,19 @@ class LabelTest(unittest.TestCase):
         cls.labels = section(text(SKILL), "### 太字とラベル")
 
     def test_label_is_removed_alone_only_when_every_word_is_in_the_sentence(self):
-        self.assertIn("ラベルを除くのみにして語を追加しないのは、ラベルの語が全て説明の文にあるときのみ。", self.labels)
-        self.assertIn("説明の文にないラベルの語は省かずに文へ入れ、1文にする", self.labels)
+        self.assertIn("ラベルを除くのみにして言葉を追加しないのは、ラベルの言葉が全て説明の文にあるときのみ。", self.labels)
+        self.assertIn("説明の文にないラベルの言葉は省かずに文へ入れ、1文にする", self.labels)
         self.assertNotIn("説明の文がすでにラベルと同じ対象と条件を述べているなら", self.labels)
 
     def test_meaning_guard_is_kept(self):
         for words in ("2つを1つの条件にまとめず、ラベルとコロンを残して太字のみを除く",
                       "ラベルを文に入れたら、入れる前とラベルの働きが同じかを確認する",
                       "入れた後で、条件や否定、「〜し、」で続けた節の掛かる範囲が変わったら、ラベルとコロンの形に戻す",
-                      "番号と項目の数と順は保つ"):
+                      "番号と項目の数と順序は保つ"):
             with self.subTest(words=words):
                 self.assertIn(words, self.labels)
         # 意味の守りは、ラベルの語を入れる決まりのあとに置く（入れたあとで確かめる）
-        self.assertLess(self.labels.index("説明の文にないラベルの語は省かずに文へ入れ"), self.labels.index("入れた後で、"))
+        self.assertLess(self.labels.index("説明の文にないラベルの言葉は省かずに文へ入れ"), self.labels.index("入れた後で、"))
 
     def test_example_has_a_label_word_missing_from_the_sentence_and_keeps_it(self):
         match = re.search(r"`- \*\*(?P<label>[^*]+)\*\*：(?P<body>[^`]+)` → `- (?P<merged>[^`]+)`", self.labels)
@@ -128,7 +128,7 @@ class CalqueTypesTest(unittest.TestCase):
 
     def test_step1_reads_flag_patterns(self):
         step1 = section(text(SKILL), "### Step 1:")
-        self.assertIn("`flag-patterns.txt`（見直す語の名前と正規表現。flag.txt と同じ扱い）を読む", step1)
+        self.assertIn("`flag-patterns.txt`（見直す言葉の名前と正規表現。flag.txt と同じ扱い）を読む", step1)
 
 
 def skill_pointers(body):
@@ -175,7 +175,7 @@ class PointerTest(unittest.TestCase):
             ("gemini-syntax.md", "SKILL.md「2文の否定対比と「もちろん、」」に従って見直す"),
             ("doc-types/essay.md", "否定を残して1文にまとめる（SKILL.md「2文の否定対比と「もちろん、」」）"),
             ("slop-catalog.md", "SKILL.md「段落と文の論理構造（つながり）」に従い、宣言の数と続く項目の数が合っている場合に限り"),
-            ("review-points.md", "renyo_noun（2.3.0。他動詞を1語のみ名詞にした語を「の」で受ける形。message に当たった表現）: "
+            ("review-points.md", "renyo_noun（2.3.0。他動詞を1語のみ名詞にした言葉を「の」で受ける形。message に当たった表現）: "
                                  "SKILL.md「直訳語、漢語の詰まり、連用形名詞」"),
             ("gemini-syntax.md", "1つのみなら太字を残す（SKILL.md「太字とラベル」）"),
             ("doc-types/manual.md", "（SKILL.md「装飾記号の排除と太字の表示、コピー調の抑制」）"),

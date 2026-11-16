@@ -13,7 +13,7 @@
 - 数値（T5、R2-5、R2-6、V1、V2、V3）: 漢数字の範囲の前の数、時間の「二分」「十二分」「五分」、「一つもしくは」「一つもって」、
   日付の月と日・時刻の時と分の入れ替え、範囲を1つの値に縮めた書き換え。
 - 否定対比の逆転（R2-1〜R2-4）: A を下げたままの言い換え、B の句の語で否定する語、両方を確かめた形、B の句の言い換え。
-- 気持ちの語（R2-7）: 人の名前や呼び名のあとの「落ち込む」。
+- 気持ちの言葉（R2-7）: 人の名前や呼び名のあとの「落ち込む」。
 - 速さ（V4）: 続く文に移った値の似かたの比べ。
 """
 
@@ -99,7 +99,7 @@ class RephraseTestWordingTest(unittest.TestCase):
         end = next((index for index in range(start + 1, len(lines))
                     if lines[index] and not lines[index].startswith(" ")), len(lines))
         item = "\n".join(lines[start:end])
-        for word in ("並べて肯定", "AとB", "Aに加えてB", "AだけでなくB", "平仮名で始まる語", "お知らせ"):
+        for word in ("並べて肯定", "AとB", "Aに加えてB", "AだけでなくB", "平仮名で始まる言葉", "お知らせ"):
             with self.subTest(word=word):
                 self.assertIn(word, item)
         self.assertNotIn("否定していた語が「目的」「重視」「まず」などの語と同じ文に出たときに見直し候補を出す", item)
@@ -156,10 +156,10 @@ class MinutesHeadingPrincipleTest(unittest.TestCase):
         for base in (ROOT / "references", ROOT / "skills" / "yomiyasu" / "references"):
             with self.subTest(base=str(base.relative_to(ROOT))):
                 minutes = section_text(base / "doc-types" / "minutes.md", "## 3. 長さと省略")
-                self.assertIn("話題の順と見出しの扱い（推敲では変えない。", minutes)
+                self.assertIn("話題の順序と見出しの扱い（推敲では変えない。", minutes)
                 self.assertIn("domains/business.md 3章", minutes)
                 business = section_text(base / "domains" / "business.md", "## 3. 文体")
-                self.assertIn("議事録を推敲するときは、話題の順と見出しを変えない。", business)
+                self.assertIn("議事録を推敲するときは、話題の順序と見出しを変えない。", business)
 
 
 # ---- T3: 参考の5種類の理由の文と、--doc-type のヘルプ ----
@@ -184,7 +184,7 @@ class InfoTypeReasonTest(unittest.TestCase):
                   "■ 勢い（参考 1件。文書の種類 incident では見出しを短い項目名にするのが正しい直し方のことが多いので、"
                   "参考として出しています）"),
                  (MIXED, "pr",
-                  "■ 勢い（参考 3件。文書の種類 pr では「！」や強める語を減らし、絵文字を外すのが正しい直し方のことが多いので、"
+                  "■ 勢い（参考 3件。文書の種類 pr では「！」や強める言葉を減らし、絵文字を外すのが正しい直し方のことが多いので、"
                   "参考として出しています）"))
         for pair, doc_type, head in cases:
             with self.subTest(doc_type=doc_type, head=head):
@@ -192,7 +192,7 @@ class InfoTypeReasonTest(unittest.TestCase):
 
     def test_exclamation_only_keeps_the_sentence(self):
         self.assertEqual(tone_head(INCIDENT_EXCLAMATION, "incident"),
-                         "■ 勢い（参考 1件。文書の種類 incident では「！」や強める語を減らすのが正しい直し方のことが多いので、"
+                         "■ 勢い（参考 1件。文書の種類 incident では「！」や強める言葉を減らすのが正しい直し方のことが多いので、"
                          "参考として出しています）")
 
 

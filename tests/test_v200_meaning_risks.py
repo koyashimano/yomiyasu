@@ -441,8 +441,8 @@ class TestSentenceType(RiskCase):
         [change] = result["type_changes"]
         self.assertEqual(marks[0]["detail"], {"lost": change["lost"], "added": change["added"]})
         report = self.report(result)
-        self.assertIn("- 文の種類を表す語が変わった: 1件（下の「■ 文の種類を表す語が変わった文」を見る）", report)
-        self.assertTrue([line for line in report if line.startswith("■ 文の種類を表す語が変わった文（")], "既存の節と見出しは残す")
+        self.assertIn("- 文の種類を表す言葉が変わった: 1件（下の「■ 文の種類を表す言葉が変わった文」を見る）", report)
+        self.assertTrue([line for line in report if line.startswith("■ 文の種類を表す言葉が変わった文（")], "既存の節と見出しは残す")
 
 
 class TestProtected(RiskCase):
@@ -674,7 +674,7 @@ class TestFixedLimits(RiskCase):
         self.assertIn("値を確かめません。", self.changed_lines(result))
 
     def test_added_feeling_is_in_the_full_diff(self):
-        """diff の詰め（10.6 B2、10.7）: 元にない気持ちの語は kind feeling の候補にもする（--fail-on には数えない）。
+        """diff の詰め（10.6 B2、10.7）: 元にない気持ちの言葉は kind feeling の候補にもする（--fail-on には数えない）。
         全文差分にも今までどおり出る。"""
         result = self.result("設定を変更した。", "設定を変更して、ほっとした。")
         self.assertNotEqual(result["status"], "no_change")

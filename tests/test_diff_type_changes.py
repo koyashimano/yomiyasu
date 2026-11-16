@@ -381,7 +381,7 @@ class TestOutputShape(unittest.TestCase):
         # v2.0.0 の形式2（設計 2.8）。v1.1.2 の9キーは名前と間の順を保ち、前後に新しいキーが付く
         # G7（種類と読者の設計 9.4）: not_judged の次に context
         # diff の詰め: full_diff のあとに文体の硬化の検査（stiffness）と勢いの検査（tone）
-        # diff の詰めの直し（反証で見つけた例）: 気持ちの語の一覧の出どころ（feeling）
+        # diff の詰めの直し（反証で見つけた例）: 気持ちの言葉の一覧の出どころ（feeling）
         # 2.4.0: 原文にない人や担当を足した文（added_actors）を最後に
         # 2.5.0: 見出しの形の変化（heading_shapes）と、読点が増えた候補（comma_increase）を最後に
         self.assertEqual(list(result), ["format", "format_version", "tool_version", "status", "changed",
@@ -394,11 +394,11 @@ class TestOutputShape(unittest.TestCase):
 
     def test_report_has_the_new_heading_only_when_needed(self):
         changed = yomiyasu_diff.report(yomiyasu_diff.diff("原因は設定ミスだとされる。\n", "原因は設定ミスだ。\n"))
-        self.assertIn("■ 文の種類を表す語が変わった文", changed)
+        self.assertIn("■ 文の種類を表す言葉が変わった文", changed)
         self.assertIn("消えた語: 伝聞（とされる）", changed)
         self.assertIn("原因は設定ミスだとされる。", changed)
         quiet = yomiyasu_diff.report(yomiyasu_diff.diff("原因は設定ミスだとされる。\n", "原因は、設定ミスだとされる。\n"))
-        self.assertNotIn("文の種類を表す語", quiet)
+        self.assertNotIn("文の種類を表す言葉", quiet)
 
     def test_cli_json_includes_type_changes(self):
         with tempfile.TemporaryDirectory() as folder:

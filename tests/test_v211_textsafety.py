@@ -439,7 +439,7 @@ class RunHeadTests(_Case):
         self.assertEqual((result["materials"]["candidate_count"], result["materials"]["meaning_risk_count"]), (1, 0))
 
     def test_materials_names_follow_ground_count(self):
-        """名前の付け方は ground の candidate_count の数え方と同じ（新規作成の資料にない語、確度の語、推敲の補足）。"""
+        """名前の付け方は ground の candidate_count の数え方と同じ（新規作成の資料にない語、確度の言葉、推敲の補足）。"""
         check = load(CHECK, "_yomiyasu_check_v211_textsafety_materials")
         diff = load(ROOT / "scripts" / "yomiyasu_diff.py", "_yomiyasu_diff_v211_textsafety_materials")
         cases = (("値は2秒です。\n", ["値は2秒の予定です。\n"], "値は1秒です。\n"),

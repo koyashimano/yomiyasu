@@ -6,17 +6,17 @@ formal を足して9つにする。lint で外す規則はなし）と、diff �
 2026-10-14 朝の作者の判断で fragment_run も外す）から取った。文はすべてこのファイルで作った合成の文。コーパスは読むだけ。
 
 - 指定しないときの出力（9章の不変の条件、10.1 の A）は、tests/fixtures/g7_unchanged_outputs.json と照らす。
-  lint、diff、check の人が読む出力、終了コード、標準エラー、check の状態の行（と、context を除いた JSON）を、コーパスの
+  lint、diff、check の人が読む出力、終了コード、標準エラー、check のステータス行（と、context を除いた JSON）を、コーパスの
   全ファイルと全組で比べる。fixture の行は出どころが違う（fixture の generated_by、source_commit、source_sha256 の
   lint、diff、check）。
   - lint の行は G7 を入れる前の作業ツリー（45a5885 に check の固めを入れたもの）の出力で、作り直していない。
     指定しないときの lint の出力が G7 の前と1字も違わないことを見る。ただし 2.2.0 で、新しい info の規則の候補が出る
     1本の行だけを作り直した（fixture の updates）。
-  - diff と check の行は、diff の詰め（文体の硬化、勢い、否定対比の逆転、気持ちの語の検査と、意味が変わる恐れの判定の詰め）
+  - diff と check の行は、diff の詰め（文体の硬化、勢い、否定対比の逆転、気持ちの言葉の検査と、意味が変わる恐れの判定の詰め）
     とその直し（反証で見つけた例の直しを3回）のあとの出力で作り直したもので、G7 の前の出力とは違う。そのあとの変更で出力が
     変わらないことを見る。G7 の前からの変化（足した節とキー、判定が変わった組、--fail-on の終了コードが変わった組と理由）は
     fixture の updates に書いた。
-  - 状態の語の消えと書き足しの検出を追加した後も、同じ手順で diff と check の要約を更新した。
+  - 状態の言葉の消えと書き足しの検出を追加した後も、同じ手順で diff と check の要約を更新した。
     新しい候補と件数・状態行の変化だけを反映し、lint の要約は保持した（内訳は fixture の updates）。
   lint、diff、check の出力をわざと変えたときは、fixture の generated_by に書いた作り方（このファイルの unchanged_diff() と
   unchanged_check() の値で diff と check の行を作り直し、lint の行は作り直さず、unchanged_lint() と1字も違わないことを
@@ -159,11 +159,11 @@ DIFF_DOC_TYPE_HELP = ("文書の種類（値は yomiyasu_lint.py と同じ）。
                       + DOC_TYPE_CHOICES + "。")
 DIFF_READER_HELP = "想定する読者の知識（値は yomiyasu_lint.py と同じ）。表示と JSON に残すだけで、判定は変わりません。"
 # diff の詰めの直し（反証で見つけた例）: diff と同じ、硬化と勢いを参考にする種類の文を足した
-CHECK_DOC_TYPE_HELP = ("文書の種類。lint と diff に渡し、記録と状態の行に残します。lint は、その種類で普通な書き方を候補にする規則を"
+CHECK_DOC_TYPE_HELP = ("文書の種類。lint と diff に渡し、記録とステータス行に残します。lint は、その種類で普通な書き方を候補にする規則を"
                        "外します（yomiyasu_lint.py -h の一覧）。差分（意味が変わる恐れと規則の見直し候補）の見つけ方と、資料との照合の"
                        "判定は変わりません。" + _COUNTED_HELP + _DETECTOR_HELP + "mail だけ敬語の度合いを検査します。値: "
                        + DOC_TYPE_CHOICES + "。")
-CHECK_READER_HELP = "想定する読者の知識。lint と diff に渡し、記録と状態の行に残します。判定は変わりません。"
+CHECK_READER_HELP = "想定する読者の知識。lint と diff に渡し、記録とステータス行に残します。判定は変わりません。"
 
 # 9.3 と 9.4 の1行
 LINT_NO_SKIP = "この種類で外す規則はありません。"
@@ -431,7 +431,7 @@ class DocTypeCase(unittest.TestCase):
 # ---- A. 指定しないときは変わらない ----
 
 class UnchangedOutputTest(unittest.TestCase):
-    """9章の不変の条件: 指定しないときの lint、diff、check の人が読む出力、終了コード、状態の行が fixture と1字も違わない。
+    """9章の不変の条件: 指定しないときの lint、diff、check の人が読む出力、終了コード、ステータス行が fixture と1字も違わない。
     lint は G7 の前の出力と、diff と check は diff の詰めとその直しのあとの出力と照らす（このファイルの冒頭の説明と、
     fixture の description、updates）。"""
 
@@ -533,7 +533,7 @@ class DefaultsTest(DocTypeCase):
         self.assertNotIn("文書の種類:", yomiyasu_diff.report(result))
 
     def test_a4_check_without_options(self):
-        """A4: 記録の options.doc_type と options.reader は null で、状態の行に doc_type= と reader= がない。
+        """A4: 記録の options.doc_type と options.reader は null で、ステータス行に doc_type= と reader= がない。
         run と verify の JSON の context は mode の次。"""
         a = self.write("a.md", PAIRS_22[1][0])
         b = self.write("b.md", PAIRS_22[1][1])
@@ -984,7 +984,7 @@ class OptionTest(DocTypeCase):
                 self.assertEqual(self.diff(*(argv + [a, b]))[0], code, given)
 
     def test_diff_human_output_line(self):
-        """9.4: 指定したときだけ、断りの行のすぐあとに1行。最後の状態の行は変えない。"""
+        """9.4: 指定したときだけ、断りの行のすぐあとに1行。最後のステータス行は変えない。"""
         a = self.write("a.md", PAIRS_22[1][0])
         b = self.write("b.md", PAIRS_22[1][1])
         _, plain, _ = self.diff(a, b)
@@ -1042,7 +1042,7 @@ class OptionTest(DocTypeCase):
                          {"doc_type": "slides", "reader": "expert"})
 
     def test_d6_record_status_line_and_json(self):
-        """D6: 記録の options、状態の行の doc_type= と reader=（mode= の次、付けたときだけ）、3行目、verify の状態の行と JSON。"""
+        """D6: 記録の options、ステータス行の doc_type= と reader=（mode= の次、付けたときだけ）、3行目、verify のステータス行と JSON。"""
         a = self.write("a.md", PAIRS_22[1][0])
         b = self.write("b.md", SLIDES_SAMPLE)
         code, out, err = self.check("run", "--source", a, "--final", b, "--doc-type", "slides", "--reader", "general")
@@ -1059,7 +1059,7 @@ class OptionTest(DocTypeCase):
         self.assertEqual(list(record["options"]), ["stance", "fail_on", "timeout", "doc_type", "reader", "fact_gaps"])
         self.assertEqual((record["options"]["doc_type"], record["options"]["reader"]), ("slides", "general"))
         self.assertEqual(record["result"]["token"], lines[1])
-        # verify は記録の値を状態の行と JSON に出す
+        # verify は記録の値をステータス行と JSON に出す
         code, out, err = self.check("verify", "--final", b)
         self.assertEqual(code, 0, out + err)
         verify_lines = out.split("\n")
@@ -1069,7 +1069,7 @@ class OptionTest(DocTypeCase):
         keys = list(result)
         self.assertEqual(keys[keys.index("mode") + 1], "context")
         self.assertEqual(result["context"], {"doc_type": "slides", "reader": "general"})
-        # 読者だけ: 3行目は変えない（読者は検査を変えないので書かない）。状態の行には reader= だけ
+        # 読者だけ: 3行目は変えない（読者は検査を変えないので書かない）。ステータス行には reader= だけ
         c = self.write("c.md", SLIDES_SAMPLE + "追記です。\n")
         code, out, err = self.check("run", "--new-run", "--source", a, "--final", c, "--reader", "expert")
         lines = out.split("\n")
@@ -1081,7 +1081,7 @@ class OptionTest(DocTypeCase):
         lines = out.split("\n")
         self.assertTrue(lines[2].startswith("実行した検査: lint（最終稿、種類 formal、外した候補0件）候補3件、"), lines[2])
         self.assertIn(" mode=rewrite doc_type=formal checks=lint,diff ", lines[1])
-        # 状態の行は読む側の正規表現にそのまま当たる
+        # ステータス行は読む側の正規表現にそのまま当たる
         self.assertIsNotNone(STATUS_LINE.match(lines[1]))
 
     def test_d6_stdin_run(self):

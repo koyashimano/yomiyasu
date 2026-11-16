@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """v2.0.0（diff の詰めの直し）: check と diff の表示、一覧のハッシュ、一覧の読み込み、ヘルプ、--stdin の区切りの書き損じ。
 
-- 反証 spec の F1: 文体の硬化と勢いの見直し候補（level review）だけのとき、diff の状態の行と check の1行目が「候補はない」
+- 反証 spec の F1: 文体の硬化と勢いの見直し候補（level review）だけのとき、diff のステータス行と check の1行目が「候補はない」
   だけを言わないようにする。JSON の candidate_count と status は変えず、人が読む文だけに添える。参考（info）だけなら添えない。
 - spec の F5、regress の R9: 記録の tools に references/lists/ の一覧のファイル（あれば）の SHA-256 を足し、verify で比べて
   変わっていれば tool_changed にする。1行目は、一覧が変わったことが分かる文にする（--replay でも同じ）。一覧のファイルがあるのに
-  読めず、内蔵の一覧で動いたときは、硬化と勢いの節に1行出す（ファイルがないときは出さない）。気持ちの語の一覧の出どころも
+  読めず、内蔵の一覧で動いたときは、硬化と勢いの節に1行出す（ファイルがないときは出さない）。気持ちの言葉の一覧の出どころも
   JSON の feeling.list に出す。
 - regress の R8: BOM つきの UTF-8 と CRLF で保存した一覧も、ファイルから読む（コメント行を語にしない）。
 - spec の F6、F7: --fail-on と check run の --doc-type のヘルプ。
@@ -48,17 +48,17 @@ PLAIN = ("保存期間は3日です。\n", "保存期間は30日です。\n")
 QUIET = ("設定を確認します。\n", "設定を 確認します。\n")
 
 DETECTOR_NOTE = "（文体の硬化と勢いの見直し候補 {}件は下の節）"
-# レポートの最後の状態の行は、節がその上にあるので「上の節」（反証で見つけた例）
+# レポートの最後のステータス行は、節がその上にあるので「上の節」（反証で見つけた例）
 DETECTOR_NOTE_LAST = "（文体の硬化と勢いの見直し候補 {}件は上の節）"
 RUN_FIRST_DETECTORS = ("検査を実行しました（1回目）。規則に当たる候補はありませんが、文体の硬化と勢いの見直し候補が{}件あります。"
                        "その節を原文と照らし、全文差分で意図しない変更がないかを確かめ、直すなら1回まで、直さないなら")
 LIST_CHANGED_LINE = ("記録のあとで、検査に使う語の一覧（{}）が変わりました。yomiyasu_check.py run をもう一度実行してください。")
 SCRIPT_AND_LIST_CHANGED_LINE = ("記録のあとで、検査スクリプトと、検査に使う語の一覧（{}）が変わりました。"
                                 "yomiyasu_check.py run をもう一度実行してください。")
-LIST_LABELS = {"nominalization": "名詞化の言い回しの一覧", "intensifiers": "強める語の一覧",
-               "feelings": "気持ちの語の一覧（意味が変わる恐れの「元にない気持ちの語」に使う）"}
+LIST_LABELS = {"nominalization": "名詞化の言い回しの一覧", "intensifiers": "強める言葉の一覧",
+               "feelings": "気持ちの言葉の一覧（意味が変わる恐れの「元にない気持ちの言葉」に使う）"}
 LIST_PROBLEM_LINE = "- {} references/lists/{}.txt を読めなかったので、内蔵の一覧で検査しました（{}）。ファイルに足し引きした語は効いていません。"
-FAIL_ON_NOT_COUNTED = "否定対比の主張の逆転と、元にない気持ちの語も数えません。"
+FAIL_ON_NOT_COUNTED = "否定対比の主張の逆転と、元にない気持ちの言葉も数えません。"
 
 
 def diff_of(before, after, **options):
@@ -118,7 +118,7 @@ def run_diff(scripts, before, after, *extra):
                           capture_output=True, env=dict(os.environ, PYTHONIOENCODING="utf-8"), timeout=60, cwd=str(folder))
 
 
-# ---- spec の F1: 状態の行と1行目 ----
+# ---- spec の F1: ステータス行と1行目 ----
 
 class DiffStatusLineTest(unittest.TestCase):
     def test_tone_only_status_line_names_the_section(self):
@@ -295,7 +295,7 @@ class ListHashTest(CheckCase):
         self.assertEqual(set(LINT_LIST_NAMES), set(yomiyasu_lint._V220_BUILTIN_LISTS))
 
 
-# ---- spec の F5 の後半: 読めない一覧の知らせと、気持ちの語の一覧の出どころ ----
+# ---- spec の F5 の後半: 読めない一覧の知らせと、気持ちの言葉の一覧の出どころ ----
 
 class ListProblemTest(unittest.TestCase):
     def setUp(self):

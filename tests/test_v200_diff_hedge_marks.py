@@ -312,7 +312,7 @@ TOP_KEYS = ['format',
  'heading_shapes',
  'comma_increase']
 
-RULES_BASELINE = '■ 規則の見直し候補（4件）\n■ 元の文にない語: 拡張、暫定的\n■ 消えた語: 暫定引\n■ 文末の種類が変わった文（立場に合う向きか見る）\n- 推量・考え → 説明（〜ます）: プールサイズの暫定的な拡張は、別の負荷問題を誘発するおそれがあります。\n■ 文の種類を表す語が変わった文（伝聞・推量・意見・例え・依頼が、元の文と同じか見る）\n- 元: プールサイズの暫定引き上げは、別の負荷問題を誘発するかもしれません。\n  後: プールサイズの暫定的な拡張は、別の負荷問題を誘発するおそれがあります。\n  消えた語: 推量（かもしれません）'
+RULES_BASELINE = '■ 規則の見直し候補（4件）\n■ 元の文にない語: 拡張、暫定的\n■ 消えた語: 暫定引\n■ 文末の種類が変わった文（立場に合う向きか見る）\n- 推量・考え → 説明（〜ます）: プールサイズの暫定的な拡張は、別の負荷問題を誘発するおそれがあります。\n■ 文の種類を表す言葉が変わった文（伝聞・推量・意見・例え・依頼が、元の文と同じか見る）\n- 元: プールサイズの暫定引き上げは、別の負荷問題を誘発するかもしれません。\n  後: プールサイズの暫定的な拡張は、別の負荷問題を誘発するおそれがあります。\n  消えた語: 推量（かもしれません）'
 
 RESTORED_BASELINE = {'format': 'yomiyasu-diff',
  'format_version': 2,
@@ -546,8 +546,8 @@ class HedgeMarks(unittest.TestCase):
             self.assertEqual(result['fail_on_meaning_risk_count'], 1)
         if tag == 'S1':
             report = diff.report(result)
-            self.assertIn('■ 文の種類を表す語が変わった文', report)
-            self.assertNotIn('- 文の種類を表す語が変わった:', report)
+            self.assertIn('■ 文の種類を表す言葉が変わった文', report)
+            self.assertNotIn('- 文の種類を表す言葉が変わった:', report)
             self.assertNotIn('■ 意味が変わる恐れ', report)
             self.assertEqual(diff.report_parts(result)['rules'], RULES_BASELINE)
             self.assertEqual(diff.meaning_risks(*EXAMPLES[tag], type_changes=result['type_changes']),

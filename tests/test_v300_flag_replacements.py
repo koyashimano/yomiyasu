@@ -1,4 +1,4 @@
-"""3.0.0: flag.txt の使う語と、linked worktree から元の checkout の語の一覧を読む動作。
+"""3.0.0: flag.txt の推奨語と、linked worktree から元の checkout の用語リストを読む動作。
 
 文と git リポジトリは合成のもの。一覧は一時フォルダの中だけに作る。
 """
@@ -45,16 +45,16 @@ class FlagReplacementTest(FolderCase):
         found = [f for f in self.lint_json(str(doc))["findings"] if f["rule"] == "project_term"]
         tail = yomiyasu_lint._V220_MESSAGE_TAIL
         self.assertEqual([f["message"] for f in found], [
-            "語の一覧（flag.txt、flag-patterns.txt）の語（指紋）" + tail + "使う語: 指紋 → fingerprint。",
-            "語の一覧（flag.txt）の語（承認）" + tail,
-            "語の一覧（flag-patterns.txt）の語（指紋）" + tail,
+            "用語リスト（flag.txt、flag-patterns.txt）の言葉（指紋）" + tail + "推奨語: 指紋 → fingerprint。",
+            "用語リスト（flag.txt）の言葉（承認）" + tail,
+            "用語リスト（flag-patterns.txt）の言葉（指紋）" + tail,
         ])
-        # allow.txt で同じ行の一部だけ外しても、残した語の使う語を出す。
+        # allow.txt で同じ行の一部だけ外しても、残した語の推奨語を出す。
         write(folder / "flag-patterns.txt", "branch\t枝\n")
         doc = write(doc, "指紋と承認と枝を確認します。\n")
         for allowed, message in (
-            ("承認\n", "語の一覧（flag.txt、flag-patterns.txt）の語（指紋、branch）" + tail + "使う語: 指紋 → fingerprint。"),
-            ("指紋\n", "語の一覧（flag.txt、flag-patterns.txt）の語（承認、branch）" + tail),
+            ("承認\n", "用語リスト（flag.txt、flag-patterns.txt）の言葉（指紋、branch）" + tail + "推奨語: 指紋 → fingerprint。"),
+            ("指紋\n", "用語リスト（flag.txt、flag-patterns.txt）の言葉（承認、branch）" + tail),
         ):
             with self.subTest(allow=allowed):
                 write(folder / "allow.txt", allowed)
@@ -68,29 +68,29 @@ class FlagReplacementTest(FolderCase):
         source = write(self.root / "source.md", "指紋を照合します。\n枝を確認します。\n")
         process = run([CHECK, "run", "--source", source, "--final", doc], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- 指紋（語の一覧。L1。使う語: fingerprint）", process.stdout)
-        self.assertIn("- branch（語の一覧。L2）", process.stdout)
+        self.assertIn("- 指紋（用語リスト。L1。推奨語: fingerprint）", process.stdout)
+        self.assertIn("- branch（用語リスト。L2）", process.stdout)
         record_path, = (self.root / ".yomiyasu" / "runs").glob("*/attempt-1.json")
         record = json.loads(record_path.read_text(encoding="utf-8"))
         self.assertEqual(list(record["options"]["words"]), WORD_KEYS + ["flag_patterns_lines", "flag_patterns_sha256"])
         process = run([CHECK, "verify", "--final", doc, "--replay"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
         self.assertIn("replay=ok", process.stdout)
-        # flag.txt の語と同じ名前のパターンだけが当たるときは、使う語を添えない。
+        # flag.txt の語と同じ名前のパターンだけが当たるときは、推奨語を添えない。
         write(folder / "flag-patterns.txt", "指紋\t照合\n")
         write(doc, "照合します。\n")
         process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- 指紋（語の一覧。L1）", process.stdout)
-        self.assertNotIn("使う語:", process.stdout)
-        # パターンだけが当たった語の使う語が、ほかの語の使う語の一部に見えても添えない。
+        self.assertIn("- 指紋（用語リスト。L1）", process.stdout)
+        self.assertNotIn("推奨語:", process.stdout)
+        # パターンだけが当たった語の推奨語が、ほかの語の推奨語の一部に見えても添えない。
         write(folder / "flag.txt", "公開鍵\tkey\n鍵\tkey\n")
         write(folder / "flag-patterns.txt", "鍵\t照合\n")
         write(doc, "公開鍵を照合します。\n")
         process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- 公開鍵（語の一覧。L1。使う語: key）", process.stdout)
-        self.assertIn("- 鍵（語の一覧。L1）", process.stdout)
+        self.assertIn("- 公開鍵（用語リスト。L1。推奨語: key）", process.stdout)
+        self.assertIn("- 鍵（用語リスト。L1）", process.stdout)
 
     def test_linked_worktree_uses_original_checkout_words(self) -> None:
         repo = self.root / "checkout"
@@ -126,13 +126,13 @@ class FlagReplacementTest(FolderCase):
 
 
 class FlagRowsTest(FolderCase):
-    """flag.txt の行の読み方の端（字下げした行、3列の行、使う語の上限、使う語が使わない語を含む組）。"""
+    """flag.txt の行の読み方の端（字下げした行、3列の行、推奨語の上限、推奨語が使わない語を含む組）。"""
 
     def project_terms(self, doc: Path) -> list[dict]:
         return [f for f in self.lint_json(str(doc))["findings"] if f["rule"] == "project_term"]
 
     def test_indented_rows_are_read_as_before(self) -> None:
-        # 行頭が TAB の行（字下げした語）は、2.5.0 までと同じく1語として読む。字下げした「使わない語<TAB>使う語」も読む。
+        # 行頭が TAB の行（字下げした語）は、2.5.0 までと同じく1語として読む。字下げした「使わない語<TAB>推奨語」も読む。
         folder = self.words(flag="# 用語\n\t指紋\n\t依存先\tdependency\n承認\n\t\n  枝\t\n\t# 字下げのコメント\n", allow="")
         words = markdown_visibility.load_words(str(folder))
         self.assertEqual(words["flag"], ("指紋", "依存先", "承認", "枝"))
@@ -142,13 +142,13 @@ class FlagRowsTest(FolderCase):
         found = self.project_terms(doc)
         tail = yomiyasu_lint._V220_MESSAGE_TAIL
         self.assertEqual([(f["line"], f["message"]) for f in found], [
-            (1, "語の一覧（flag.txt）の語（指紋）" + tail),
-            (2, "語の一覧（flag.txt）の語（依存先）" + tail + "使う語: 依存先 → dependency。"),
-            (3, "語の一覧（flag.txt）の語（承認）" + tail),
+            (1, "用語リスト（flag.txt）の言葉（指紋）" + tail),
+            (2, "用語リスト（flag.txt）の言葉（依存先）" + tail + "推奨語: 依存先 → dependency。"),
+            (3, "用語リスト（flag.txt）の言葉（承認）" + tail),
         ])
 
     def test_rows_with_bom_crlf_and_spaces_around_the_tab(self) -> None:
-        # BOM と CRLF つきの flag.txt。左と右の前後の空白を除き、右が空なら使う語なし。# で始まる行は TAB があってもコメント。
+        # BOM と CRLF つきの flag.txt。左と右の前後の空白を除き、右が空なら推奨語なし。# で始まる行は TAB があってもコメント。
         data = "\ufeff# コメント\tx\r\n 指紋 \t fingerprint \r\n承認\t\r\n依存先\t\tdependency\r\n　全角の空白　\r\n#鍵\tkey\r\n"
         folder = self.words(flag=data.encode("utf-8"), allow="")
         words = markdown_visibility.load_words(str(folder))
@@ -161,7 +161,7 @@ class FlagRowsTest(FolderCase):
         self.assertEqual([sorted(f) for f in found], [["line", "message", "rule", "severity", "snippet"]])
 
     def test_rows_without_inner_tab_are_one_word(self) -> None:
-        # 行の前後にしか TAB のない行は、前後の空白と TAB を除いた字が1語になる（2.5.0 までの読み方。使う語は付かない）。
+        # 行の前後にしか TAB のない行は、前後の空白と TAB を除いた字が1語になる（2.5.0 までの読み方。推奨語は付かない）。
         rows = ["指紋", "\t指紋", "指紋\t", " \t 指紋 \t ", "　指紋　", "二つの 語", "# 指紋", "\t# 指紋", "", " \t "]
         for row in rows:
             with self.subTest(row=row):
@@ -174,7 +174,7 @@ class FlagRowsTest(FolderCase):
                 self.assertEqual(words["flag_replacements"], {})
 
     def test_later_row_wins_for_the_same_word(self) -> None:
-        # 同じ使わない語に違う使う語を書いた行が2つあると、あとの行の使う語を使う。使う語のない行は、前の行の使う語を消さない。
+        # 同じ使わない語に違う推奨語を書いた行が2つあると、あとの行の推奨語を使う。推奨語のない行は、前の行の推奨語を消さない。
         folder = self.words(flag="指紋\tfingerprint\n承認\n指紋\tフィンガープリント\n指紋\n", allow="")
         words = markdown_visibility.load_words(str(folder))
         self.assertEqual(words["flag"], ("指紋", "承認", "指紋", "指紋"))
@@ -182,11 +182,11 @@ class FlagRowsTest(FolderCase):
         self.assertEqual(words["flag_replacements"], {"指紋": "フィンガープリント"})
 
     def test_tab_inside_replacement_is_an_input_error(self) -> None:
-        # 3列の行（使わない語<TAB>使う語<TAB>メモ）は、ファイルの名前と行番号を出して止める（lint、diff、check とも終了コード2）。
+        # 3列の行（使わない語<TAB>推奨語<TAB>メモ）は、ファイルの名前と行番号を出して止める（lint、diff、check とも終了コード2）。
         folder = self.words(flag="承認\n指紋\tfingerprint\tメモ\n", allow="")
         doc = write(self.root / "doc.md", "指紋を照合します。\n")
         source = write(self.root / "source.md", "指紋を照合します。\n")
-        message = "Error opening file {}: 2行目の使う語の中にタブがあります".format(folder / "flag.txt")
+        message = "Error opening file {}: 2行目の推奨語の中にタブがあります".format(folder / "flag.txt")
         for command in ([yomiyasu_lint.__file__, doc], [DIFF, source, doc],
                         [CHECK, "run", "--source", source, "--final", doc, "--no-record"]):
             with self.subTest(command=Path(command[0]).name):
@@ -199,7 +199,7 @@ class FlagRowsTest(FolderCase):
         self.words(flag="指紋\t\t fingerprint \t\n")
         found = self.project_terms(doc)
         self.assertEqual(len(found), 1)
-        self.assertTrue(found[0]["message"].endswith("使う語: 指紋 → fingerprint。"), found[0]["message"])
+        self.assertTrue(found[0]["message"].endswith("推奨語: 指紋 → fingerprint。"), found[0]["message"])
         self.assertNotIn("\t", found[0]["message"])
 
     def test_replacement_length_limit(self) -> None:
@@ -209,14 +209,14 @@ class FlagRowsTest(FolderCase):
         self.words(flag="承認\n\n指紋\t" + "あ" * (limit + 1) + "\n")
         with self.assertRaises(markdown_visibility.WordsError) as caught:
             markdown_visibility.load_words(str(folder))
-        self.assertEqual(str(caught.exception), "Error opening file {}: 3行目の使う語は {} 字までです".format(
+        self.assertEqual(str(caught.exception), "Error opening file {}: 3行目の推奨語は {} 字までです".format(
             folder / "flag.txt", limit))
         # 使わない語の長さには上限を置かない（文書に出た語だけが出力に出るので、今までどおり）。
         self.words(flag="あ" * (limit + 1) + "\n")
         self.assertEqual(markdown_visibility.load_words(str(folder))["flag"], ("あ" * (limit + 1),))
 
     def test_text_already_using_the_replacement_is_not_flagged(self) -> None:
-        # 使う語が使わない語を含む組（サーバ → サーバー）は、もう使う語で書いてある所を数えない。
+        # 推奨語が使わない語を含む組（サーバ → サーバー）は、もう推奨語で書いてある所を数えない。
         self.words(flag="サーバ\tサーバー\n問い合わせ\tお問い合わせ\nAPI\tWeb API\n", allow="")
         doc = write(self.root / "doc.md", "サーバーに接続します。\nサーバを止めます。\nサーバーとサーバを比べます。\n"
                                           "お問い合わせを受け付けます。\n問い合わせに答えます。\n"
@@ -224,29 +224,29 @@ class FlagRowsTest(FolderCase):
         found = self.project_terms(doc)
         tail = yomiyasu_lint._V220_MESSAGE_TAIL
         self.assertEqual([(f["line"], f["message"]) for f in found], [
-            (2, "語の一覧（flag.txt）の語（サーバ）" + tail + "使う語: サーバ → サーバー。"),
-            (3, "語の一覧（flag.txt）の語（サーバ）" + tail + "使う語: サーバ → サーバー。"),
-            (5, "語の一覧（flag.txt）の語（問い合わせ）" + tail + "使う語: 問い合わせ → お問い合わせ。"),
-            (7, "語の一覧（flag.txt）の語（API）" + tail + "使う語: API → Web API。"),
+            (2, "用語リスト（flag.txt）の言葉（サーバ）" + tail + "推奨語: サーバ → サーバー。"),
+            (3, "用語リスト（flag.txt）の言葉（サーバ）" + tail + "推奨語: サーバ → サーバー。"),
+            (5, "用語リスト（flag.txt）の言葉（問い合わせ）" + tail + "推奨語: 問い合わせ → お問い合わせ。"),
+            (7, "用語リスト（flag.txt）の言葉（API）" + tail + "推奨語: API → Web API。"),
         ])
-        # 使う語のない同じ語は、今までどおり語の一部にも当たる。
+        # 推奨語のない同じ語は、今までどおり語の一部にも当たる。
         self.words(flag="サーバ\n")
         self.assertEqual([f["line"] for f in self.project_terms(doc)], [1, 2, 3])
-        # check の「残した指摘の語」にも、もう使う語で書いてある行は出ない。
+        # check の「残した指摘の言葉」にも、もう推奨語で書いてある行は出ない。
         self.words(flag="サーバ\tサーバー\n")
         source = write(self.root / "source.md", doc.read_bytes())
         process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- サーバ（語の一覧。L2、L3。使う語: サーバー）", process.stdout)
+        self.assertIn("- サーバ（用語リスト。L2、L3。推奨語: サーバー）", process.stdout)
 
     def test_word_twice_in_the_replacement(self) -> None:
-        # 使う語が使わない語を2回含む組では、2つ目の位置の当たりも使う語の中に収まるとみなす。
+        # 推奨語が使わない語を2回含む組では、2つ目の位置の当たりも推奨語の中に収まるとみなす。
         self.words(flag="鍵\t鍵と合鍵\n", allow="")
         doc = write(self.root / "doc.md", "鍵と合鍵を渡します。\n合鍵を渡します。\n")
         self.assertEqual([f["line"] for f in self.project_terms(doc)], [2])
 
     def test_ascii_replacement_is_matched_at_word_boundaries(self) -> None:
-        # 英数字で始まるか終わる使う語は、端が語の境目にある所だけを使う語とみなす（flag.txt の語の端と同じ境目）。
+        # 英数字で始まるか終わる推奨語は、端が語の境目にある所だけを推奨語とみなす（flag.txt の語の端と同じ境目）。
         self.words(flag="user\tend user\nDB\tDB server\nname\tfile name\n", allow="")
         doc = write(self.root / "doc.md", "The end user signs in.\nThe backend user signs in.\nA front-end user signs in.\n"
                                           "DB server を増やします。\nDB servers を増やします。\n"
@@ -254,7 +254,7 @@ class FlagRowsTest(FolderCase):
         self.assertEqual([f["line"] for f in self.project_terms(doc)], [2, 3, 5, 6])
 
     def test_japanese_neighbors_that_form_the_replacement_are_not_counted(self) -> None:
-        # 日本語の字の端では語の境目を見分けないので、前後の字と合わせて使う語と同じ並びになる所も数えない
+        # 日本語の字の端では語の境目を見分けないので、前後の字と合わせて推奨語と同じ並びになる所も数えない
         # （docs/tools.md に書いてある動き。読点などで切れていれば数える）。
         self.words(flag="問い合わせ\tお問い合わせ\nサーバ\tサーバ機\n鍵\t公開鍵\n", allow="")
         doc = write(self.root / "doc.md", "なお問い合わせは窓口で受け付けます。\nなお、問い合わせは窓口で受け付けます。\n"
@@ -262,7 +262,7 @@ class FlagRowsTest(FolderCase):
         self.assertEqual([f["line"] for f in self.project_terms(doc)], [2, 4, 6])
 
     def test_same_word_on_both_sides_is_read_as_no_replacement(self) -> None:
-        # 使う語が使わない語と同じ行（書き間違い）は、使う語のない行として読む。その語の指摘は今までどおり出る。
+        # 推奨語が使わない語と同じ行（書き間違い）は、推奨語のない行として読む。その語の指摘は今までどおり出る。
         folder = self.words(flag="サーバ\tサーバ\nキー\t キー \n", allow="")
         words = markdown_visibility.load_words(str(folder))
         self.assertEqual(words["flag"], ("サーバ", "キー"))
@@ -271,74 +271,74 @@ class FlagRowsTest(FolderCase):
         doc = write(self.root / "doc.md", "サーバを止めます。\nキーを回します。\n")
         tail = yomiyasu_lint._V220_MESSAGE_TAIL
         self.assertEqual([(f["line"], f["message"]) for f in self.project_terms(doc)], [
-            (1, "語の一覧（flag.txt）の語（サーバ）" + tail),
-            (2, "語の一覧（flag.txt）の語（キー）" + tail),
+            (1, "用語リスト（flag.txt）の言葉（サーバ）" + tail),
+            (2, "用語リスト（flag.txt）の言葉（キー）" + tail),
         ])
-        # 使う語のない行と同じく、前の行の使う語は消さない。
+        # 推奨語のない行と同じく、前の行の推奨語は消さない。
         self.words(flag="サーバ\tサーバー\nサーバ\tサーバ\n")
         self.assertEqual(markdown_visibility.load_words(str(folder))["flag_replacements"], {"サーバ": "サーバー"})
 
     def test_check_reads_words_before_the_replacement_tail(self) -> None:
-        # 使う語に「）の候補です」があっても、check は語を「使う語: 」より前から取る。
+        # 推奨語に「）の候補です」があっても、check は語を「推奨語: 」より前から取る。
         self.words(flag="指紋\t印）の候補です\n", allow="")
         doc = write(self.root / "doc.md", "指紋を照合します。\n")
         source = write(self.root / "source.md", "指紋を照合します。\n")
         process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("\n- 指紋（語の一覧。L1。使う語: 印）の候補です）\n", process.stdout)
-        self.assertIn("（最終稿の直訳語と語の一覧の指摘。1語）", process.stdout)
+        self.assertIn("\n- 指紋（用語リスト。L1。推奨語: 印）の候補です）\n", process.stdout)
+        self.assertIn("（最終稿の直訳語と用語リストの指摘。1語）", process.stdout)
 
     def test_check_words_with_the_tail_marker_and_no_replacement(self) -> None:
-        # 使う語を添えない指摘は、語やパターンの名前に「。使う語: 」があっても、語をそのまま取る（3.0.0 の前と同じ読み方）。
+        # 推奨語を添えない指摘は、語やパターンの名前に「。推奨語: 」があっても、語をそのまま取る（3.0.0 の前と同じ読み方）。
         self.assertEqual(yomiyasu_check._PROJECT_TERM_PLAIN_TAIL, "）" + yomiyasu_lint._V220_MESSAGE_TAIL)
-        folder = self.words(flag="承認\n。使う語: 指紋\n", allow="")
-        write(folder / "flag-patterns.txt", "名前。使う語: 別\t照合\n")
-        doc = write(self.root / "doc.md", "承認して照合します。\n付きます。使う語: 指紋 と出ます。\n")
+        folder = self.words(flag="承認\n。推奨語: 指紋\n", allow="")
+        write(folder / "flag-patterns.txt", "名前。推奨語: 別\t照合\n")
+        doc = write(self.root / "doc.md", "承認して照合します。\n付きます。推奨語: 指紋 と出ます。\n")
         source = write(self.root / "source.md", doc.read_bytes())
         process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("\n- 承認（語の一覧。L1）\n", process.stdout)
-        self.assertIn("\n- 名前。使う語: 別（語の一覧。L1）\n", process.stdout)
-        self.assertIn("\n- 。使う語: 指紋（語の一覧。L2）\n", process.stdout)
-        self.assertIn("（最終稿の直訳語と語の一覧の指摘。3語）", process.stdout)
+        self.assertIn("\n- 承認（用語リスト。L1）\n", process.stdout)
+        self.assertIn("\n- 名前。推奨語: 別（用語リスト。L1）\n", process.stdout)
+        self.assertIn("\n- 。推奨語: 指紋（用語リスト。L2）\n", process.stdout)
+        self.assertIn("（最終稿の直訳語と用語リストの指摘。3語）", process.stdout)
         self.assertNotIn("語の取れない指摘", process.stdout)
 
     def test_check_does_not_read_a_replacement_from_a_pattern_name(self) -> None:
-        # 使う語を添えない指摘のパターンの名前が「使う語: 語 → 使う語」の形でも、ほかの行の同じ名前の語に使う語を添えない。
+        # 推奨語を添えない指摘のパターンの名前が「推奨語: 語 → 推奨語」の形でも、ほかの行の同じ名前の語に推奨語を添えない。
         folder = self.words(flag="指紋\tfp\n", allow="")
-        write(folder / "flag-patterns.txt", "指紋）の候補です。使う語: 指紋 → fp\t照合\nx\t照合\n指紋\t確認\n")
+        write(folder / "flag-patterns.txt", "指紋）の候補です。推奨語: 指紋 → fp\t照合\nx\t照合\n指紋\t確認\n")
         doc = write(self.root / "doc.md", "照合します。\n確認します。\n")
         source = write(self.root / "source.md", doc.read_bytes())
         process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("\n- 指紋（語の一覧。L2）\n", process.stdout)
-        self.assertNotIn("L2。使う語: fp", process.stdout)
+        self.assertIn("\n- 指紋（用語リスト。L2）\n", process.stdout)
+        self.assertNotIn("L2。推奨語: fp", process.stdout)
 
     def test_check_section_names_the_replacement_as_a_source(self) -> None:
-        # 使う語のある語が残った run だけ、冒頭の行と節の文が使う語に触れる。残らない run の文は今までのまま。
+        # 推奨語のある語が残った run だけ、冒頭の行と節の文が推奨語に触れる。残らない run の文は今までのまま。
         self.words(flag="指紋\tfingerprint\n承認\n", allow="")
         doc = write(self.root / "doc.md", "指紋を照合します。\n承認を待ちます。\n")
         source = write(self.root / "source.md", "指紋を照合します。\n承認を待ちます。\n")
         process = run([CHECK, "run", "--source", source, "--final", doc], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("残した指摘の語: 指紋（語の一覧。L1。使う語: fingerprint）、承認（語の一覧。L2）。", process.stdout)
-        self.assertIn("（最終稿の直訳語と語の一覧の指摘。2語）\nflag.txt の使う語は、替える名前の出典にできます"
+        self.assertIn("残した指摘の言葉: 指紋（用語リスト。L1。推奨語: fingerprint）、承認（用語リスト。L2）。", process.stdout)
+        self.assertIn("（最終稿の直訳語と用語リストの指摘。2語）\nflag.txt の推奨語は、替える名前の出典にできます"
                       "（references/calques.md 4章）。\n最終稿に残した次の語は、", process.stdout)
-        self.assertIn("\n- 書き直しに使う名前が flag.txt の使う語、原文、依頼、提供資料、文脈のどれにもないか、"
+        self.assertIn("\n- 書き直しに使う名前が flag.txt の推奨語、原文、依頼、提供資料、文脈のどれにもないか、"
                       "動作やその動作をする人が、原文、依頼、提供資料、文脈のどれにも書いていないか、", process.stdout)
         self.assertNotIn("書き直しに使う名前や動作、", process.stdout)
-        # verify の「残した指摘の語」には使う語を添えない。
+        # verify の「残した指摘の言葉」には推奨語を添えない。
         process = run([CHECK, "verify", "--final", doc], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("指紋（語の一覧。L1）", process.stdout)
-        self.assertNotIn("使う語", process.stdout)
+        self.assertIn("指紋（用語リスト。L1）", process.stdout)
+        self.assertNotIn("推奨語", process.stdout)
         write(doc, "承認を待ちます。\n")
         process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("（最終稿の直訳語と語の一覧の指摘。1語）\n最終稿に残した次の語は、", process.stdout)
+        self.assertIn("（最終稿の直訳語と用語リストの指摘。1語）\n最終稿に残した次の語は、", process.stdout)
         self.assertIn("\n- 書き直しに使う名前や動作、その動作をする人が、原文、依頼、提供資料、文脈のどれにも書いていないか、",
                       process.stdout)
-        self.assertNotIn("使う語", process.stdout)
+        self.assertNotIn("推奨語", process.stdout)
 
 
 class WorktreeFallbackShapeTest(FolderCase):
@@ -365,7 +365,7 @@ class WorktreeFallbackShapeTest(FolderCase):
         # check run は元の checkout の場所を記録に残し、verify --replay はその場所でやり直す。
         process = run([CHECK, "run", "--source", source, "--final", doc], doc.parent, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("語の一覧: {}".format(folder), process.stdout)
+        self.assertIn("用語リスト: {}".format(folder), process.stdout)
         process = run([CHECK, "verify", "--final", doc, "--replay"], doc.parent, self.env)
         self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
         self.assertIn("replay=ok", process.stdout)

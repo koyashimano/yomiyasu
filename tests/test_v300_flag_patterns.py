@@ -1,4 +1,4 @@
-"""3.0.0: 語の一覧の flag-patterns.txt（1行に「名前<TAB>正規表現」）。
+"""3.0.0: 用語リストの flag-patterns.txt（1行に「名前<TAB>正規表現」）。
 
 正規表現は、手間が行の長さに比例する書き方だけを受け付ける（上限のない繰り返し、取り込む組、後方参照、印、原子団、所有の
 繰り返し、\\z などの 3.11 以降の書き方、FutureWarning を出す字の組を断る。繰り返しの幅と選択肢の数の積と、全パターンの
@@ -49,15 +49,15 @@ class PatternFindingTest(PatternCase):
         found = project_terms(self.lint_json(str(self.doc("修正の枝を依存先に送ります。\n枝だけ。\n依存先だけ。\n"))))
         tail = yomiyasu_lint._V220_MESSAGE_TAIL
         self.assertEqual([f["message"] for f in found],
-                         ["語の一覧（flag.txt、flag-patterns.txt）の語（依存先、branch）" + tail,
-                          "語の一覧（flag-patterns.txt）の語（branch）" + tail,
-                          "語の一覧（flag.txt）の語（依存先）" + tail])
+                         ["用語リスト（flag.txt、flag-patterns.txt）の言葉（依存先、branch）" + tail,
+                          "用語リスト（flag-patterns.txt）の言葉（branch）" + tail,
+                          "用語リスト（flag.txt）の言葉（依存先）" + tail])
 
     def test_repeated_letters_marked(self):
         """{m,n} で2回以上続く字（ba{2}c の a）があっても、当たる行を必ず当たる字で外さない。"""
         self.patterns("r\tba{2}c\nb\t枝{2,3}葉\nc\tba{1,3}c\n")
         found = project_terms(self.lint_json(str(self.doc("baacを足します。\n枝枝枝葉です。\nbaaacです。\nbcです。\n"))))
-        self.assertEqual([(f["line"], f["message"].split("の語（")[1].split("）")[0]) for f in found],
+        self.assertEqual([(f["line"], f["message"].split("の言葉（")[1].split("）")[0]) for f in found],
                          [(1, "r、c"), (2, "b"), (3, "c")])
         for pattern, required in (("ba{2}c", (("ba", "ac"),)), ("枝{2,3}葉", (("枝", "枝葉"),)), ("ba{1}c", (("bac",),))):
             with self.subTest(pattern=pattern):
@@ -69,8 +69,8 @@ class PatternFindingTest(PatternCase):
         found = project_terms(self.lint_json(str(self.doc("依存先に送ります。\n依存先を見ます。\n"))))
         tail = yomiyasu_lint._V220_MESSAGE_TAIL
         self.assertEqual([f["message"] for f in found],
-                         ["語の一覧（flag.txt、flag-patterns.txt）の語（依存先）" + tail,
-                          "語の一覧（flag.txt）の語（依存先）" + tail])
+                         ["用語リスト（flag.txt、flag-patterns.txt）の言葉（依存先）" + tail,
+                          "用語リスト（flag.txt）の言葉（依存先）" + tail])
 
     def test_flag_and_pattern_one_finding(self):
         self.patterns(BRANCH, flag="依存先\n")
@@ -80,7 +80,7 @@ class PatternFindingTest(PatternCase):
     def test_allow_by_name_and_by_match(self):
         self.patterns(BRANCH + "bg\t背景(?=実行|ジョブ)\n", allow="branch\n")
         found = project_terms(self.lint_json(str(self.doc("修正の枝を見ます。背景実行です。\n枝だけ。\n"))))
-        self.assertEqual([(f["line"], f["message"].split("の語（")[1].split("）")[0]) for f in found], [(1, "bg")])
+        self.assertEqual([(f["line"], f["message"].split("の言葉（")[1].split("）")[0]) for f in found], [(1, "bg")])
         # 当たった文字列を allow に書いたときは、その行のそのパターンの当たりがすべて許した文字列のときだけ外す
         self.patterns("key\t鍵穴|(?<!公開)鍵\n", allow="鍵\n")
         found = project_terms(self.lint_json(str(self.doc("新しい鍵です。\n鍵と鍵穴です。\n"))))
@@ -237,14 +237,14 @@ class CheckRecordTest(PatternCase):
     def test_kept_mark_section_names_patterns(self):
         self.patterns(BRANCH)
         process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-record")
-        self.assertIn("語の一覧（flag.txt）の語" + yomiyasu_check._KEPT_MARK_PATTERNS_NOTE + "は、", process.stdout)
+        self.assertIn("用語リスト（flag.txt）の言葉" + yomiyasu_check._KEPT_MARK_PATTERNS_NOTE + "は、", process.stdout)
         self.assertIn("branch", process.stdout)
         self.assertIn("flag-patterns 1行", process.stdout)
 
     def test_kept_mark_section_without_patterns_unchanged(self):
         self.words(flag="枝\n")
         process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-record")
-        self.assertIn("語の一覧（flag.txt）の語は、定着した言い方でも残さない。", process.stdout)
+        self.assertIn("用語リスト（flag.txt）の言葉は、定着した言い方でも残さない。", process.stdout)
         self.assertNotIn(yomiyasu_check._KEPT_MARK_PATTERNS_NOTE, process.stdout)
 
     def test_record_shape_accepts_five_and_seven_keys(self):
@@ -266,7 +266,7 @@ class HelpTest(unittest.TestCase):
         import yomiyasu_diff
         import yomiyasu_hook
         exit_line = "flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す"
-        words_help = "語の一覧（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ"
+        words_help = "用語リスト（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ"
         lint_help = "".join(yomiyasu_lint._build_parser().format_help().split())
         diff_help = "".join(yomiyasu_diff._build_parser().format_help().split())
         run_help = "".join(yomiyasu_check._build_parser()[1].format_help().split())
@@ -277,7 +277,7 @@ class HelpTest(unittest.TestCase):
         self.assertIn("「名前<TAB>正規表現」を書き、当たった行に、パターンの名前を入れた", lint_help)
         for module in (yomiyasu_lint, yomiyasu_diff, yomiyasu_check):
             self.assertIn(exit_line, module._EXIT_CODES)
-        self.assertIn("語の一覧（allow.txt と flag.txt。flag-patterns.txt も置けます）のフォルダ", yomiyasu_hook._HELP)
+        self.assertIn("用語リスト（allow.txt と flag.txt。flag-patterns.txt も置けます）のフォルダ", yomiyasu_hook._HELP)
 
 
 class LongLineTest(unittest.TestCase):

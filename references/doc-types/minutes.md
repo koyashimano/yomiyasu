@@ -17,7 +17,7 @@ lint で外す規則: bold_label_list、excess_list、sentence_end_repetition
 
 ## 3. 長さと省略
 
-- 話題の順と見出しの扱い（推敲では変えない。新しく作るときのみ話題ごとに整理してよい）は domains/business.md 3章。
+- 話題の順序と見出しの扱い（推敲では変えない。新しく作るときのみ話題ごとに整理してよい）は domains/business.md 3章。
 - 体言止めの項目を文にのばさない。
 
 ## 4. 例（合成）

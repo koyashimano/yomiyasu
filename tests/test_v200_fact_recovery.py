@@ -227,7 +227,7 @@ class G15CLI(unittest.TestCase):
         self.assertIsNone(limit['fact_gaps'])
 
     def test_labelled_extract_may_equal_the_final_in_a_rewrite(self):
-        """推敲で、出典つきの区切りの抜き書きが最終稿と同じ本文でも止めない（根拠の文どおりに短い原稿を直した場合）。
+        """推敲で、出典つきの区切りの抜粋が最終稿と同じ本文でも止めない（根拠の文どおりに短い原稿を直した場合）。
         出典のない資料と、新規作成は今までどおり2。"""
         source = self.write('source.txt', '毎日2時に削除されます。\n')
         final = self.write('final.txt', '毎日3時に削除されます。\n')

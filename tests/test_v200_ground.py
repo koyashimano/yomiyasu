@@ -238,7 +238,7 @@ class TestGroundCompose(GroundCase):
         self.assertEqual(result["meaning_risks"], [])
 
     def test_example_3(self):
-        """3.5 の例3: 資料にない数値（後4行目の3回）、資料にない語（自動）、資料にあって最終稿にない確度の語（未確認）。
+        """3.5 の例3: 資料にない数値（後4行目の3回）、資料にない語（自動）、資料にあって最終稿にない確度の言葉（未確認）。
         資料にあって最終稿にない数値（14日、10件）は候補にしない。「一度」は数値にしない。"""
         materials = ["接続の再試行は未確認です。ログは14日残す。\n", "一度に送るのは最大10件です。\n"]
         final = "接続の再試行について書く。\n\n再試行は自動で行う。\n再試行は最大3回です。\n"
@@ -258,7 +258,7 @@ class TestGroundCompose(GroundCase):
         self.assertEqual(result["items"][-2:], [item for item in result["items"] if item["classification"] == "not_in_final"])
         self.assertEqual(self.item(result, "word", "再試行")["final_lines"], [1, 3, 4])
         self.assertEqual([source["index"] for source in result["sources"]], [1, 2])
-        # 見直し候補の数え方（3.5 の照合の節の行。「参考」は数えない）: 意味が変わる恐れ1、資料にない語の行1、確度の語の行1
+        # 見直し候補の数え方（3.5 の照合の節の行。「参考」は数えない）: 意味が変わる恐れ1、資料にない語の行1、確度の言葉の行1
         self.assertEqual(result["candidate_count"], 3)
 
     def test_url_scheme_and_markup_are_not_names(self):
@@ -303,7 +303,7 @@ class TestGroundCompose(GroundCase):
         result = self.ground("公開は確定です。\n", ["公開は検討中です。\n"])
         self.assertEqual(self.item(result, "certainty", "確定")["classification"], "not_in_sources")
         self.assertEqual(self.item(result, "certainty", "検討中")["classification"], "dropped_certainty")
-        self.assertEqual(result["meaning_risks"], [], "確度の語と語は見直し候補の1行だけで、意味が変わる恐れに入れない（0.2の5）")
+        self.assertEqual(result["meaning_risks"], [], "確度の言葉と語は見直し候補の1行だけで、意味が変わる恐れに入れない（0.2の5）")
 
 
 class TestGroundRewrite(GroundCase):

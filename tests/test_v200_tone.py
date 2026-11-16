@@ -4,12 +4,12 @@
 期待値は勢いの文書（yomiyasu-v2.0.0-addendum-tone-preservation_20261013-2135.md）の1章、3章、5章から取った。
 文はすべて合成の文（勢いの文書の表の文と、このファイルで作った文）。
 
-- 勢いの検査は文書の種類によらず毎回行う。「！」「？」絵文字、強める語の数が原文より減ったとき、見出しの字数の合計が
+- 勢いの検査は文書の種類によらず毎回行う。「！」「？」絵文字、強める言葉の数が原文より減ったとき、見出しの字数の合計が
   原文の7割未満になったときに候補を出す。コード、URL、表の中は数えない。
-- 結果は diff の JSON の tone（最後のキー）と、レポートの「■ 勢い」の節に出す。candidate_count、状態の行、
+- 結果は diff の JSON の tone（最後のキー）と、レポートの「■ 勢い」の節に出す。candidate_count、ステータス行、
   --fail-on=meaning-risk には入れない。
 - 文書の種類が pr、article、incident、manual、formal（技術文書、障害報告、ヘルプ、公用文に当たる種類）なら参考（level info）。
-- 強める語の一覧は references/lists/intensifiers.txt（ルートと skills の両方）。なければ内蔵の一覧で動く。
+- 強める言葉の一覧は references/lists/intensifiers.txt（ルートと skills の両方）。なければ内蔵の一覧で動く。
 """
 
 from pathlib import Path
@@ -120,14 +120,14 @@ class ChapterFiveTest(unittest.TestCase):
         self.assertEqual(subkinds(shortened), ["heading"])
 
     def test_keep_punch(self):
-        """残す（紹介記事）: 「パンチ」を残せば候補なし。落ち着いた言い方にすると強める語の候補が出る。"""
+        """残す（紹介記事）: 「パンチ」を残せば候補なし。落ち着いた言い方にすると強める言葉の候補が出る。"""
         before = "「黒マー油」のパンチを自宅で味わうなら"
         self.assertEqual(tone(before, before, doc_type="promo")[1]["candidates"], [])
         after = "「黒マー油」の力強い風味を自宅で味わうなら"
         self.assertEqual(subkinds(tone(before, after, doc_type="promo")[1]), ["intensifier"])
 
     def test_known_limit_repeated_praise_not_in_list(self):
-        """限界（紹介記事）: 強める語の一覧にない褒め言葉（絶品）の繰り返しを減らした推敲は、勢いの検査の候補にならない。
+        """限界（紹介記事）: 強める言葉の一覧にない褒め言葉（絶品）の繰り返しを減らした推敲は、勢いの検査の候補にならない。
         紹介記事では同じ褒め言葉の繰り返しを減らさずに残すのが決まり（references/doc-types/promo.md）なので、減らしていないかは
         推敲の見直しで読み比べる（references/review-points.md）。"""
         before = "この麺は絶品です。スープも絶品で、具も絶品です。"
@@ -218,7 +218,7 @@ class CountTest(unittest.TestCase):
 
 class NotCountedTest(unittest.TestCase):
     def test_tone_is_not_a_candidate_count_or_fail_on(self):
-        """勢いの検査は見直し候補を出すだけ。candidate_count、状態の行、--fail-on には入れない（3.3）。"""
+        """勢いの検査は見直し候補を出すだけ。candidate_count、ステータス行、--fail-on には入れない（3.3）。"""
         result, section = tone("最強のお土産！", "最強のお土産、")
         self.assertTrue(section["candidates"])
         self.assertEqual(result["meaning_risks"], [])

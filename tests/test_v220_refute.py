@@ -96,7 +96,7 @@ class CalqueTableFormsNarrowTest(unittest.TestCase):
 
 
 class CalqueLineTest(unittest.TestCase):
-    """2回目の反証: 1行に1件の calque の、同じ行のほかの文と、語の一覧で一部の語だけを許したとき。"""
+    """2回目の反証: 1行に1件の calque の、同じ行のほかの文と、用語リストで一部の語だけを許したとき。"""
 
     def test_type3_is_compared_with_type1_of_the_same_sentence(self):
         found = [f for f in yomiyasu_lint.lint_text("このジョブは、毎晩差分を引きます。検証環境からは、本番のデータを引けません。\n")["findings"]
@@ -120,7 +120,7 @@ class CalqueLineTest(unittest.TestCase):
         self.assertEqual(result["context"]["words"]["allow_removed"]["calque"], 1)
         result = yomiyasu_lint.lint_text("次のスプリントでは、締め日を決めます。\n", words=dict(words, allow=("スプリント",)))
         self.assertEqual([f["message"] for f in result["findings"] if f["rule"] == "project_term"],
-                         ["語の一覧（flag.txt）の語（締め日）の候補です。文脈を見て、誰が何をどうするかを書き直すか確かめてください。"])
+                         ["用語リスト（flag.txt）の言葉（締め日）の候補です。文脈を見て、誰が何をどうするかを書き直すか確かめてください。"])
 
 
 class DialoguePeriodTest(unittest.TestCase):

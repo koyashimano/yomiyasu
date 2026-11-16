@@ -1,7 +1,7 @@
 """v2.4.0: diff の「原文にない人や担当を足した文」（JSON の added_actors）。
 
 - 推敲で、原文と資料にない人・担当・部署を、主語か、知らせる・頼む相手として足した文を出す。
-- 意味が変わる恐れの kind ではない。meaning_risk_count、candidate_count、状態、状態の行、--fail-on の終了コード、check の
+- 意味が変わる恐れの kind ではない。meaning_risk_count、candidate_count、状態、ステータス行、--fail-on の終了コード、check の
   記録の meaning_risk= は変わらない（JSON に足すのは最後のキー added_actors だけ）。
 - yomiyasu 自身が勧めるカタカナの役割語の和語への言い換え（ステークホルダー → 関係者など）、原文にある人の別の書き方、
   原文に書き手の一人称があるときの一人称、資料にある人は出さない。
@@ -232,7 +232,7 @@ class NotAMeaningRiskTest(unittest.TestCase):
         # 規則の見直し候補のあと、文体の硬化の前
         self.assertLess(report.index("■ 規則の見直し候補"), report.index(HEADING.format(2)))
         self.assertLess(report.index(HEADING.format(2)), report.index("■ 全文差分"))
-        # 状態の行は変わらない
+        # ステータス行は変わらない
         self.assertEqual(report.split("\n")[1], yomiyasu_diff.report(self.without_actors()).split("\n")[1])
 
     def test_no_section_without_candidates(self):

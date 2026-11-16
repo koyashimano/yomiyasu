@@ -1,4 +1,4 @@
-"""v2.2.0: プロジェクトの語の一覧（.yomiyasu-words/ の allow.txt と flag.txt）を、lint、diff、check、フックで確かめる。
+"""v2.2.0: プロジェクトの用語リスト（.yomiyasu-words/ の allow.txt と flag.txt）を、lint、diff、check、フックで確かめる。
 
 文はすべて合成の文。一覧のフォルダは一時フォルダの中にだけ作る（リポジトリの中には置かない。試験の多くはリポジトリの
 中で動き、一覧があると context の固定が崩れる）。
@@ -324,7 +324,7 @@ class LintAllowTest(FolderCase):
         result = yomiyasu_lint.lint_text(text)
         self.assertEqual(list(result["context"]), ["doc_type", "reader", "skipped_by_doc_type"])
         self.assertEqual(result, yomiyasu_lint.lint_text(text, words=None))
-        self.assertNotIn("語の一覧", yomiyasu_lint.render_report(result))
+        self.assertNotIn("用語リスト", yomiyasu_lint.render_report(result))
 
 
 class ProjectTermTest(FolderCase):
@@ -342,7 +342,7 @@ class ProjectTermTest(FolderCase):
         self.assertEqual(found, [(1, "info"), (3, "info"), (7, "info"), (9, "info")])
         finding = [f for f in result["findings"] if f["line"] == 3][0]
         self.assertEqual(finding["message"],
-                         "語の一覧（flag.txt）の語（スプリント、締め日）の候補です。文脈を見て、誰が何をどうするかを書き直すか確かめてください。")
+                         "用語リスト（flag.txt）の言葉（スプリント、締め日）の候補です。文脈を見て、誰が何をどうするかを書き直すか確かめてください。")
         self.assertEqual(finding["snippet"], "次のスプリントでは、締め日の名前とスプリントの日付を決めます。")
         self.assertEqual(sorted(finding), ["line", "message", "rule", "severity", "snippet"])
         # 点数に入れない
@@ -398,11 +398,11 @@ class LintCliTest(FolderCase):
         self.assertEqual([f["rule"] for f in result["findings"]], ["project_term"])
         process = self.lint(str(draft))
         lines = process.stdout.splitlines()
-        self.assertEqual(lines[3], "語の一覧: {}（allow 1語、flag 1語）。allow で外した候補 1件。".format(folder))
+        self.assertEqual(lines[3], "用語リスト: {}（allow 1語、flag 1語）。allow で外した候補 1件。".format(folder))
         process = self.lint("--doc-type", "article", str(draft))
         lines = process.stdout.splitlines()
         self.assertTrue(lines[3].startswith("文書の種類: 技術記事（article）"), lines[3])
-        self.assertTrue(lines[4].startswith("語の一覧: "), lines[4])
+        self.assertTrue(lines[4].startswith("用語リスト: "), lines[4])
 
     def test_no_words_and_explicit_folder(self):
         self.words(allow="静かに壊れる\n")
@@ -411,7 +411,7 @@ class LintCliTest(FolderCase):
         plain = self.lint_json("--no-words", str(draft))
         self.assertNotIn("words", plain["context"])
         self.assertEqual([f["rule"] for f in plain["findings"]], ["metaphor_verb"])
-        self.assertNotIn("語の一覧", self.lint("--no-words", str(draft)).stdout)
+        self.assertNotIn("用語リスト", self.lint("--no-words", str(draft)).stdout)
         chosen = self.lint_json("--words", "lists", str(draft))
         self.assertEqual(chosen["context"]["words"]["path"], str(other))
         self.assertEqual([f["rule"] for f in chosen["findings"]], ["metaphor_verb", "project_term"])
@@ -451,7 +451,7 @@ class LintCliTest(FolderCase):
         help_text = "".join(yomiyasu_lint._build_parser().format_help().split())
         for text in ("--wordsフォルダ", "--no-words", ".yomiyasu-words/", "project_term（info）"):
             self.assertIn(text, help_text)
-        self.assertIn("語の一覧を読めない", yomiyasu_lint._EXIT_CODES)
+        self.assertIn("用語リストを読めない", yomiyasu_lint._EXIT_CODES)
         usage = yomiyasu_lint._build_parser().format_usage()
         self.assertIn("[--words フォルダ]", usage)
         self.assertIn("[--no-words]", usage)
@@ -477,11 +477,11 @@ class DiffTest(FolderCase):
         with_words.pop("context")
         self.assertEqual(without, with_words)
         lines = run([DIFF, a, b], self.root, self.env).stdout.splitlines()
-        self.assertEqual(lines[3], "語の一覧: {}（allow 1語、flag 1語）。".format(folder))
+        self.assertEqual(lines[3], "用語リスト: {}（allow 1語、flag 1語）。".format(folder))
         lines = run([DIFF, "--reader", "general", a, b], self.root, self.env).stdout.splitlines()
         self.assertTrue(lines[3].startswith("文書の種類: 指定なし、読者: 専門知識のない人（general）。"), lines[3])
-        self.assertEqual(lines[4], "語の一覧: {}（allow 1語、flag 1語）。".format(folder))
-        self.assertNotIn("語の一覧", run([DIFF, "--no-words", a, b], self.root, self.env).stdout)
+        self.assertEqual(lines[4], "用語リスト: {}（allow 1語、flag 1語）。".format(folder))
+        self.assertNotIn("用語リスト", run([DIFF, "--no-words", a, b], self.root, self.env).stdout)
 
     def test_errors(self):
         a = write(self.root / "a.md", PLAIN_LINE + "\n")
@@ -511,7 +511,7 @@ class DiffTest(FolderCase):
                          {"path": "/x", "allow_lines": 0, "flag_lines": 1, "allow_sha256": None, "flag_sha256": "0" * 64})
         help_text = yomiyasu_diff._build_parser().format_help()
         self.assertIn("[--words フォルダ | --no-words]", help_text)
-        self.assertIn("語の一覧を読めない", yomiyasu_diff._EXIT_CODES)
+        self.assertIn("用語リストを読めない", yomiyasu_diff._EXIT_CODES)
 
 
 class CheckTest(FolderCase):
@@ -583,9 +583,9 @@ class CheckTest(FolderCase):
         self.assertEqual(process.returncode, 0, process.stderr)
         lines = process.stdout.splitlines()
         index = [n for n, line in enumerate(lines) if line.startswith("記録: ")][0]
-        self.assertEqual(lines[index + 1], "語の一覧: {}（allow 0語、flag 1語）。".format(folder))
+        self.assertEqual(lines[index + 1], "用語リスト: {}（allow 0語、flag 1語）。".format(folder))
         process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-record", "--no-words")
-        self.assertNotIn("語の一覧", process.stdout)
+        self.assertNotIn("用語リスト", process.stdout)
 
     def test_explicit_folder_and_no_words(self):
         self.words(allow="静かに壊れる\n")
@@ -644,7 +644,7 @@ class CheckTest(FolderCase):
         self.assertEqual(process.returncode, 0, process.stderr)
         self.assertEqual(json.loads(process.stdout)["words"]["path"], str(folder))
         process = self.check("start", "--source", str(self.a))
-        self.assertIn("語の一覧: {}（allow 0語、flag 1語）。".format(folder), process.stdout)
+        self.assertIn("用語リスト: {}（allow 0語、flag 1語）。".format(folder), process.stdout)
         process = self.check("start", "--source", str(self.a), "--json", "--no-words")
         self.assertNotIn("words", json.loads(process.stdout))
 
@@ -675,7 +675,7 @@ class CheckTest(FolderCase):
                 process = self.check(command, "--help")
                 self.assertIn("[--words フォルダ | --no-words]", process.stdout)
                 self.assertIn("--no-words", process.stdout)
-        self.assertIn("語の一覧を読めない", yomiyasu_check._EXIT_CODES)
+        self.assertIn("用語リストを読めない", yomiyasu_check._EXIT_CODES)
         process = self.check("verify", "--final", str(self.b), "--words", "x")
         self.assertEqual(process.returncode, 2)
 

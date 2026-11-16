@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""G15 段3: SKILL.md と references の事実の確かめの文が、道具（check）と食い違わないことを確かめる（設計 11.2 の最後の箇条）。
+"""G15 段3: SKILL.md と references の事実の確認の文が、道具（check）と食い違わないことを確かめる（設計 11.2 の最後の箇条）。
 
-- SKILL.md に節「事実の確かめ」の見出しと references/fact-recovery.md への参照があり、Step 3 の run に --fact-gaps がある。
-- references の事実の確かめの文書（ルートと skills/yomiyasu の両方）にある区切りの行が check の受ける形で、
+- SKILL.md に節「事実の確認」の見出しと references/fact-recovery.md への参照があり、Step 3 の run に --fact-gaps がある。
+- references の事実の確認の文書（ルートと skills/yomiyasu の両方）にある区切りの行が check の受ける形で、
   コードに書いたオプションが check のヘルプにある。区切りの例をそのまま check に渡すと、資料が出典ごとに分かれる。
 - references/lists/fact-gaps.txt が両方にあり、内蔵の一覧と同じ中身で読める。
 文はすべて合成。
@@ -101,9 +101,9 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
     """SKILL.md の文。"""
 
     def test_has_fact_section_heading_in_template_order(self):
-        """出力の雛形に「### 事実の確かめ」があり、「書き手に確かめたい点」のあと、「確認の記録」の前にある。"""
-        heading = re.search(r"(?m)^### 事実の確かめ$", self.skill)
-        self.assertIsNotNone(heading, "SKILL.md に「### 事実の確かめ」の見出しがない")
+        """出力の雛形に「### 事実の確認」があり、「書き手に確かめたい点」のあと、「確認の記録」の前にある。"""
+        heading = re.search(r"(?m)^### 事実の確認$", self.skill)
+        self.assertIsNotNone(heading, "SKILL.md に「### 事実の確認」の見出しがない")
         ask = self.skill.find("### 書き手に確かめたい点")
         record = self.skill.find("### 確認の記録")
         self.assertTrue(0 <= ask < heading.start() < record, (ask, heading.start(), record))
@@ -127,9 +127,9 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
                 self.assertIn("--fact-gaps", line)
 
     def test_fact_sentence_sits_after_rephrase_test(self):
-        """Step 2 の事実の確かめの文は、言い直しテストのあと、本文を直す項目の前にある（設計の手順3の位置。
+        """Step 2 の事実の確認の文は、言い直しテストのあと、本文を直す項目の前にある（設計の手順3の位置。
         材料を決めるのが書き直しの前になる）。
-        3.0.0 で Step 2 の1〜15の手順をなくし、事実の確かめの文は言い直しテストの項目3の末尾に、本文を直す項目は4になった。"""
+        3.0.0 で Step 2 の1〜15の手順をなくし、事実の確認の文は言い直しテストの項目3の末尾に、本文を直す項目は4になった。"""
         step2 = self.skill.find("### Step 2:")
         step3 = self.skill.find("### Step 3:")
         rephrase = self.skill.find("（言い直しテスト）", step2)
@@ -149,12 +149,12 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
     def test_question_place_is_report_and_grounds_are_limited(self):
         """設計 5.1 の相殺（確認は報告で行う）と、根拠を限る「だけ」が入っている。
         3.0.0 では、読み取れないことの質問を本文に入れない文が「情報が足りない場合の暫定文」にあり、確かめられなかった
-        事実の行き先は雛形の「事実の確かめ」の括弧に書いてある。根拠の文は「〜に書いてあることだけです」になり、SKILL.md を常体にして「〜に書いてあることだけ」になった。"""
+        事実の行き先は雛形の「事実の確認」の括弧に書いてある。根拠の文は「〜に書いてあることだけです」になり、SKILL.md を常体にして「〜に書いてあることだけ」になった。"""
         self.assertNotIn("不明な点の確認は「書き手に確かめたい点」で行います", self.skill)
         self.assertNotIn("不明な点の確認は「書き手に確かめたい点」で行う", self.skill)
         provisional = self.skill[self.skill.index("### 情報が足りない場合の暫定文"):self.skill.index("### 文書の立場と文末")]
         self.assertIn("読み取れないことの注記、質問、「要確認」のような編集表示は本文に入れず", provisional)
-        fact_heading = self.skill.index("### 事実の確かめ\n")
+        fact_heading = self.skill.index("### 事実の確認\n")
         self.assertIn("確かめられなかった点", self.skill[fact_heading:self.skill.index("### 確認の記録", fact_heading)])
         self.assertIn("コマンドの出力）に書いてあることのみ", self.skill)
 
@@ -193,7 +193,7 @@ class TestReferenceExamplesMatchCheck(FactRecoveryCase):
                 yield base / name
 
     def test_marker_lines_are_accepted_by_check(self):
-        """事実の確かめの文書のコードにある <<<yomiyasu: の行は、どれも check が区切りとして受ける形。"""
+        """事実の確認の文書のコードにある <<<yomiyasu: の行は、どれも check が区切りとして受ける形。"""
         for path in self.documents():
             text = path.read_text(encoding="utf-8")
             lines = marker_lines(text)
@@ -216,7 +216,7 @@ class TestReferenceExamplesMatchCheck(FactRecoveryCase):
         self.assertFalse((self.root / "state").exists())
 
     def test_options_in_code_are_in_help(self):
-        """事実の確かめの文書のコードに書いた check のオプションが、check のヘルプにある。"""
+        """事実の確認の文書のコードに書いた check のオプションが、check のヘルプにある。"""
         helps = {}
         for name in ("run", "verify"):
             process = self.run_check([name, "--help"])
@@ -238,12 +238,12 @@ class TestReferenceExamplesMatchCheck(FactRecoveryCase):
         self.assertGreater(commands, 0)
 
     def test_material_file_example_splits_by_label(self):
-        """fact-recovery.md の抜き書きの例をそのまま --material のファイルにすると、出典ごとの資料に分かれ、
+        """fact-recovery.md の抜粋の例をそのまま --material のファイルにすると、出典ごとの資料に分かれ、
         出典の中の数は照らされない。"""
         text = (ROOT / "references" / "fact-recovery.md").read_text(encoding="utf-8")
         examples = [rows for lang, rows in fenced_blocks(text)
                     if rows and rows[0].startswith("<<<yomiyasu:material")]
-        self.assertEqual(len(examples), 1, "fact-recovery.md の抜き書きの例が1つでない")
+        self.assertEqual(len(examples), 1, "fact-recovery.md の抜粋の例が1つでない")
         rows = examples[0]
         labels = [check._material_marker(row.encode("utf-8"))[0] for row in rows if row.startswith(MARKER_HEAD)]
         self.write("drafts/release.md", "再試行の間隔を短くしました。\n削除は毎日2時です。\n")

@@ -11,14 +11,14 @@
   値は数えない）。
 - ヘルプと文書（S5、S6、S10）: promo の見出しの数え方、incident の硬化の参考、絵文字と見出しの参考、「候補N件、参考M件」、
   並べる形の逆転、紹介記事の「安い。うまい。早い。」を1文にしていないか。
-- diff の表示（S7、S8）: 最後の状態の行は「上の節」。一覧を読めないときの節の見出しに「（候補なし）」を使わない。
+- diff の表示（S7、S8）: 最後のステータス行は「上の節」。一覧を読めないときの節の見出しに「（候補なし）」を使わない。
 - 否定対比の逆転（指摘1、4、5、7）: 比べて下げる語を、A の句に続くときだけ数え、複合動詞などを除く。語で否定した節
   （対象外、非対応など）を否定のある節とみなす。原文の B の側の「Aの〜」では A を除かない。結論を言う「と確認」
   「と考えられます」では並べる形を数える。
 - 数値（指摘2、6、Q1、Q2）: 漢数字の「分」「条」の慣用句、「十分間に合う」、「一つも」「一つひとつ」「一つ一つ」を数にしない。
   範囲・日付・時刻のまとまりの表記の違いは、単位とつなぎの字がそろうときだけ。組の文の値が続く文に移ったとみなすのは、
   組の文に同じ単位の値が増えて（減って）いないときだけ。
-- 気持ちの語（指摘9、10）: 堅苦しい・見苦しい・重苦しい、心配は要りません・ご心配には及びません、半分に落ち込む・売上の
+- 気持ちの言葉（指摘9、10）: 堅苦しい・見苦しい・重苦しい、心配は要りません・ご心配には及びません、半分に落ち込む・売上の
   落ち込み、失礼を。
 - 勢い（指摘11）: 間接の問いは「かとの」「かという」「かどうか」「か否か」「かと聞く」などに限る。
 """
@@ -190,7 +190,7 @@ class UnsupportedCountTest(CheckCase):
         self.assertEqual(self.third_line_count(split_lines(process.stdout)), 1)
 
     def test_corpus_compose_count_matches_the_candidates(self):
-        """反証で見つけたコーパスの5組（Q4）: 新規作成の資料照合と diff の数の合計が、状態の行の meaning_risk と同じ。"""
+        """反証で見つけたコーパスの5組（Q4）: 新規作成の資料照合と diff の数の合計が、ステータス行の meaning_risk と同じ。"""
         pairs = (("blacklist_ai/01_tech_arch_sonnet_default.md", "yomiyasu_rewritten/01_tech_arch_sonnet_default_bl.md"),
                  ("human/human_oga_07.md", "human/human_oga_08.md"),
                  ("raw_ai/06_spec_draft_sonnet_formal.md", "raw_ai/07_code_review_sonnet_casual.md"),
@@ -245,7 +245,7 @@ class ReviewPointsWordingTest(unittest.TestCase):
         self.assertIn("formal", text)
 
     def test_mixed_summary_value(self):
-        self.assertIn("候補N件、参考M件", section_text(REFERENCES / "review-points.md", "## 1. 出力の始めの行"))
+        self.assertIn("候補N件、参考M件", section_text(REFERENCES / "review-points.md", "## 1. 出力の冒頭の行"))
 
     def test_typed_emoji_and_heading(self):
         text = section_text(REFERENCES / "review-points.md", "### ■ 勢い")
@@ -265,7 +265,7 @@ class ReviewPointsWordingTest(unittest.TestCase):
         self.assertIn("硬化", rows[0])
 
 
-# ---- S7: 最後の状態の行 ----
+# ---- S7: 最後のステータス行 ----
 EXCLAMATIONS = ("しおかぜラーメンのスープは濃厚です！麺はもちもちです！", "しおかぜラーメンのスープは濃厚です。麺はもちもちです。")
 
 
@@ -295,7 +295,7 @@ class ListNoteHeadingTest(unittest.TestCase):
             lines = text.split("\n")
             self.assertIn("■ 文体の硬化（一覧の注意）", lines)
             self.assertIn("■ 勢い（一覧の注意）", lines)
-            self.assertTrue(lines[lines.index("■ 勢い（一覧の注意）") + 1].startswith("- 強める語の一覧 references/lists/"))
+            self.assertTrue(lines[lines.index("■ 勢い（一覧の注意）") + 1].startswith("- 強める言葉の一覧 references/lists/"))
 
 
 # ---- S10: 紹介記事の「安い。うまい。早い。」を1文にした推敲（勢いの検査では拾わない。文書で案内する）----
@@ -463,7 +463,7 @@ class ConclusionFormsTest(unittest.TestCase):
                 self.assertEqual(reversal_words("原因はキャッシュではなく、DNSの設定でした。", after), [])
 
 
-# ---- 指摘9、10: 気持ちの語 ----
+# ---- 指摘9、10: 気持ちの言葉 ----
 class FeelingWordsTest(unittest.TestCase):
     def test_not_feelings(self):
         for before, after, doc_type in (

@@ -35,7 +35,7 @@ NINE_KEYS = ["markers", "new_words", "lost_words", "structure", "spans", "logic"
 # 10.6 B1: --fail-on=meaning-risk が数える件数（fail_on_meaning_risk_count）を meaning_risk_count のすぐ後ろに足す
 # G7（種類と読者の設計 9.4、10.1）: not_judged の次に context を足す（キーを足すだけで、形式2のまま）
 # diff の詰め（追加文書 2.4、勢いの文書 3.3）: 文体の硬化の検査（stiffness）と勢いの検査（tone）を full_diff のあとに足す
-# diff の詰めの直し（反証で見つけた例）: 気持ちの語の一覧の出どころ（feeling）を最後に足す
+# diff の詰めの直し（反証で見つけた例）: 気持ちの言葉の一覧の出どころ（feeling）を最後に足す
 # 2.5.0: 見出しの形の変化（heading_shapes）と、読点が増えた候補（comma_increase）を最後に足す
 TOP_KEYS = (["format", "format_version", "tool_version", "status", "changed", "candidate_count", "meaning_risk_count",
              "fail_on_meaning_risk_count", "not_judged", "context", "meaning_risks"] + NINE_KEYS
@@ -47,7 +47,7 @@ HEADING_ADDED = {"heading_and_code": ["見出しのレベルを変えた（元1�
 DISCLAIMER = ("全文差分は変わった箇所を示すだけで、意味が同じだという証明ではありません。"
               "この検査では、意味の保持と読者にとっての分かりやすさは判定していません。")
 NO_CANDIDATE_STATUS = "状態: 変更はあるが、専用の規則に当たる見直し候補はない（変更"
-# 10.2 D9: 改行コード、BOM、末尾の改行だけが違う（hunk がない）ときの状態の行と、全文差分の見出し
+# 10.2 D9: 改行コード、BOM、末尾の改行だけが違う（hunk がない）ときのステータス行と、全文差分の見出し
 ZERO_HUNK_STATUS = "状態: 変更はあるが、専用の規則に当たる見直し候補はない（変更 0か所。改行コード・BOM・末尾の改行だけが違う）"
 ZERO_HUNK_HEADING = "■ 全文差分（変更 0か所。省略していません）"
 BOM = "\ufeff"  # 見えない文字なので、ソースには直接書かない
@@ -104,7 +104,7 @@ EXAMPLE_C = """差分の検査を実行しました。
 - 数値が変わった（元5行目 → 後3行目）: 3日 → 30日
   元: 保存期間は3日です。
   後: 保存期間は30日です。
-- 文の種類を表す語が変わった: 2件（下の「■ 文の種類を表す語が変わった文」を見る）
+- 文の種類を表す言葉が変わった: 2件（下の「■ 文の種類を表す言葉が変わった文」を見る）
 
 ■ 規則の見直し候補（15件）
 ■ 言い回しの種類の増減（意味が変わりやすいところ）
@@ -121,7 +121,7 @@ EXAMPLE_C = """差分の検査を実行しました。
 - 文頭のつなぎ: しかし、「キャッシュ」も確認するべきです。
 ■ 文末の種類が変わった文（立場に合う向きか見る）
 - 動作（〜します）・箇条書き → 勧め: 設定ファイルを開き、値を変更しましょう。
-■ 文の種類を表す語が変わった文（伝聞・推量・意見・例え・依頼が、元の文と同じか見る）
+■ 文の種類を表す言葉が変わった文（伝聞・推量・意見・例え・依頼が、元の文と同じか見る）
 - 元: 値を変更してください。
   後: 設定ファイルを開き、値を変更しましょう。
   消えた語: 依頼・決まり（てください）
@@ -543,7 +543,7 @@ class DiffCase(unittest.TestCase):
         self.assertEqual(lines[0], FIRST_LINE, report)
         self.assertEqual(lines[2], DISCLAIMER, report)
         self.assertTrue(lines[1].startswith(status_line), report)
-        self.assertEqual(lines[-1], lines[1], "状態の行を最後にもう一度出す（2.7の8）\n" + report)
+        self.assertEqual(lines[-1], lines[1], "ステータス行を最後にもう一度出す（2.7の8）\n" + report)
 
     def assert_complete(self, orig, rewrite, full):
         """2.3 の完全さの約束: equal と hunk をつなぐと前後の文に1字も違わずに戻る。segments も同じ。"""
@@ -669,7 +669,7 @@ class TestStatus(DiffCase):
                 report = process.stdout.rstrip("\n")
                 self.assert_status_lines(report, NO_CANDIDATE_STATUS)
                 self.assertIn(line, report.split("\n"))
-                # 10.2 D9: hunk のない変化の状態の行と、全文差分の見出しのすぐ下の注記の行
+                # 10.2 D9: hunk のない変化のステータス行と、全文差分の見出しのすぐ下の注記の行
                 lines = report.split("\n")
                 self.assertEqual(lines[1], ZERO_HUNK_STATUS, report)
                 self.assertEqual(full_diff_section(report)[:2], [ZERO_HUNK_HEADING, line], report)
@@ -677,7 +677,7 @@ class TestStatus(DiffCase):
                 self.assertEqual(process.returncode, 0, "改行コードや BOM だけの違いは意味が変わる恐れにしない")
 
     def test_final_newline_only(self):
-        """10.2 D9、D9b: 末尾の改行だけが違うときは hunk を作らず、状態の行と文書全体の注記の行で知らせる。"""
+        """10.2 D9、D9b: 末尾の改行だけが違うときは hunk を作らず、ステータス行と文書全体の注記の行で知らせる。"""
         result = self.diff2("会議は3時に始まります。\n", "会議は3時に始まります。")
         self.assertEqual(result["status"], "changed_without_candidates")
         self.assertIs(result["changed"], True)
@@ -704,7 +704,7 @@ class TestStatus(DiffCase):
         self.assertNotIn("■ 規則の見直し候補", report)
 
     def test_status_lines_count_hunks_and_candidates(self):
-        """2.6 の状態の行の数え方: 変更の数は hunk の数、見直し候補は candidate_count、意味が変わる恐れは meaning_risk_count。"""
+        """2.6 のステータス行の数え方: 変更の数は hunk の数、見直し候補は candidate_count、意味が変わる恐れは meaning_risk_count。"""
         result = self.diff2("設定を確認します。\n\n手順を読みます。\n", "設定を 確認します。\n\n手順を 読みます。\n")
         self.assertEqual(len(result["full_diff"]["hunks"]), 2)
         report = self.report(result)
@@ -1424,20 +1424,20 @@ class TestPerformanceEdges(DiffCase):
 DIFF_HELP_DESCRIPTION = ("元の文と書き直した文を比べ、変わった箇所をすべて出し、意味が変わる恐れと規則の見直し候補を挙げます。"
                          "全文差分は意味が同じだという証明ではありません。意味が同じかどうかは判定しません。")
 # 10.6 B1: 数える種類を書く。変えない箇所（コード、URL、引用など）は数えない
-# diff の詰めの直し（反証で見つけた例）: 否定対比の主張の逆転と気持ちの語も数えないことを足した
+# diff の詰めの直し（反証で見つけた例）: 否定対比の主張の逆転と気持ちの言葉も数えないことを足した
 # v2.1.0: 許可の言い方の変化と、事実や仕様を述べる種類で数える2つ（「場合がある」の言い切り、「必ず」などの足し）を足した。
 # 能力の言い方の消えは、どの種類でも数えないことを書いた
 # v2.1.1: 関連・相関の文に因果の言い方を足した書き換えと、選ぶ範囲（どれか一つ ↔ 全部）が入れ替わった書き換え、数に付いた概数や範囲の印の
 # 消えと足しを数えることを足した
-DIFF_HELP_FAIL_ON = ("意味が変わる恐れのうち、数値、否定、主語と目的語の入れ替え、文の種類（問いと平叙、文の種類を表す語）、引用の書き方の変化、"
+DIFF_HELP_FAIL_ON = ("意味が変わる恐れのうち、数値、否定、主語と目的語の入れ替え、文の種類（問いと平叙、文の種類を表す言葉）、引用の書き方の変化、"
                      "確度を強めた書き換え（かもしれない → 見込み、見込み → 予定、と思われる → 断定など）、"
-                     "原文の状態の語（未定、未確認、調査中など）が消えた書き換え、原文にない書き手の約束・保証・再発防止の誓いを足した書き換えが"
+                     "原文の状態の言葉（未定、未確認、調査中など）が消えた書き換え、原文にない書き手の約束・保証・再発防止の誓いを足した書き換えが"
                      "1件でもあれば、終了コード1で終わります。許可の言い方（してよい、してもよい、構わない）が消えたか増えた書き換えも数えます。"
                      "事実や仕様を述べる種類（--doc-type が pr、article、incident、proposal、manual、formal、paper）では、"
                      "「場合がある」「ことがある」を消して言い切った書き換えと、断定に「必ず」「確実に」などを足した書き換えも数えます"
                      "（ほかの種類と種類なしでは数えません）。能力の言い方（できる、可能だ）が消えた書き換えは、どの種類でも数えません。"
                      "コード・URL・引用ブロックなど変えない箇所の変化は、意味が変わる恐れとして出しますが、"
-                     "この条件には数えません。否定対比の主張の逆転と、元にない気持ちの語も数えません。確度を弱めた書き換え、"
+                     "この条件には数えません。否定対比の主張の逆転と、元にない気持ちの言葉も数えません。確度を弱めた書き換え、"
                      "数えない語だけの確度の変化、予定の言い切り（する予定です → します）、かぎかっこの中の言葉の変化も数えません。"
                      "推量の言い方が、同じ強さの別の慎重な言い方に替わっただけの文（かもしれません → 恐れがあります、と思われます → 見込みです）も数えません。"
                      "原文にない因果のつながりを足した書き換えと、書き手の行為と読む言い方（いたします、今後・改めて、"

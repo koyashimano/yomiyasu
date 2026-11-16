@@ -40,7 +40,7 @@ class SkillTextTest(unittest.TestCase):
         body = self.skill
         self.assertLess(body.index("### 実行するコマンド"), body.index("### Step 3:"))
         commands = section(body, "### 実行するコマンド")
-        for word in ("`python3`、`python`、`py -3` の順に試して", "command not found", "Python was not found",
+        for word in ("`python3`、`python`、`py -3` の順番に試して", "command not found", "Python was not found",
                      "`yomiyasu-check: not_run reason=no_python`", "${CLAUDE_SKILL_DIR}", "`cd`、`&&`"):
             with self.subTest(word=word):
                 self.assertIn(word, commands)

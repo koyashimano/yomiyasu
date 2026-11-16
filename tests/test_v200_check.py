@@ -45,7 +45,7 @@ DIFF = SCRIPTS / "yomiyasu_diff.py"
 SKILL_MD = ROOT / "skills" / "yomiyasu" / "SKILL.md"
 TOOL_NAMES = ("yomiyasu_check.py", "yomiyasu_lint.py", "yomiyasu_diff.py", "markdown_visibility.py")
 
-# 3.10 状態の行の文法と、読む側の正規表現
+# 3.10 ステータス行の文法と、読む側の正規表現
 STATUS_LINE = re.compile(r"^yomiyasu-check: ([a-z_]+)((?: [a-z_]+=\S+)*)$")
 # G7（種類と読者の設計 9.5）: mode の次に、付けたときだけ doc_type と reader
 FIELD_ORDER = ("via", "run", "attempt", "final", "source", "expected", "mode", "doc_type", "reader", "checks",
@@ -91,7 +91,7 @@ RUN_DISCLAIMER = "この記録は検査を実行したことを示すだけで�
 # 候補があるときに、3行目のあとの候補の一覧に続けて出る案内（その2行のぶん、4行目からあとの行が2行下がる）
 RUN_HEAD_NOTE = "候補の中身は下の節にあります。出力を切らずに読んでください。"
 FAIL_ON_HEAD = "--fail-on={} の条件に当たりました（終了コード1）。"
-MATERIALS_DISCLAIMER = ("照らしたのは数値、名前、語、確度の語だけです。主張、条件、担当が資料どおりかは判定していません。"
+MATERIALS_DISCLAIMER = ("照らしたのは数値、名前、言葉、確度の言葉だけです。主張、条件、担当が資料どおりかは判定していません。"
                         "資料と読み比べてください。")
 SAME_FILE_ERROR = ("原文と最終稿が同じファイルです。書き直す前の原文を別のファイルに残し、最終稿を別のファイルに保存してから"
                    "実行してください。原文を上書きしてしまったときは、git などで元の原稿を取り出して --source に渡してください。")
@@ -427,7 +427,7 @@ class CheckCase(unittest.TestCase):
     # --- 読み取り ---
 
     def status(self, line):
-        """状態の行を正規表現で読み、キーの順が 3.10 のとおりかを確かめる。"""
+        """ステータス行を正規表現で読み、キーの順が 3.10 のとおりかを確かめる。"""
         match = STATUS_LINE.match(line)
         self.assertIsNotNone(match, line)
         pairs = [part.split("=", 1) for part in match.group(2).split()]
@@ -471,7 +471,7 @@ class CheckCase(unittest.TestCase):
             kept = summaries["lint"].get("kept_marks")
             self.assertEqual(len(lines), 5 if kept else 4, lines)
             if kept:
-                self.assertTrue(lines[4].startswith("残した指摘の語: "), lines)
+                self.assertTrue(lines[4].startswith("残した指摘の言葉: "), lines)
         else:
             self.assertEqual(len(lines), 3, lines)
         if state == "executed":
@@ -1220,7 +1220,7 @@ class TestVerifyDetails(CheckCase):
         process, lines = self.check_ok("run", "--material", m, "--final", f)
         path, record = self.record_from(lines)
         verify_lines, fields = self.assert_verify(self.check("verify", "--final", f), "executed", code=0)
-        # 5.2: 人が読む文の検査名は「lint、diff、資料との照合、最終稿の照合」の語（状態の行の checks= は名前のまま）
+        # 5.2: 人が読む文の検査名は「lint、diff、資料との照合、最終稿の照合」の語（ステータス行の checks= は名前のまま）
         self.assertEqual(verify_lines[0], VERIFY_LINE1["executed"].format(checks="lint、資料との照合"))
         self.assertEqual((fields["mode"], fields["checks"], fields["meaning_risk"], fields["replay"]),
                          ("compose", "lint,materials", "1", "skipped"))
@@ -1451,7 +1451,7 @@ class TestComposeAndMaterials(CheckCase):
             line1,
             line2,
             "実行した検査: lint（最終稿）候補0件、資料との照合（資料2件→最終稿）資料にない数値・名前1件",
-            "資料との照合の候補: 後4行目 資料にない数値、資料にない語、最終稿にない確度の語",
+            "資料との照合の候補: 後4行目 資料にない数値、資料にない語、最終稿にない確度の言葉",
             RUN_HEAD_NOTE,
             RUN_DISCLAIMER,
             "記録: " + str(self.state / "runs" / run_id / "attempt-1.json"),
@@ -1463,7 +1463,7 @@ class TestComposeAndMaterials(CheckCase):
             "",
             "■ 資料との照合（資料2件）",
             "- 資料にない語: 自動",
-            "- 資料にあった確度の語が最終稿にない: 未確認",
+            "- 資料にあった確度の言葉が最終稿にない: 未確認",
             "- 参考: 資料にあって最終稿にない数値: 14日、10件",
             "- " + MATERIALS_DISCLAIMER,
             "",
@@ -1577,7 +1577,7 @@ class TestComposeAndMaterials(CheckCase):
         f = self.write("f.md", "再試行の回数は自動で決まります。\n")
         process, lines = self.check_ok("run", "--material", m, "--final", f)
         self.assertIn("■ 資料との照合（資料1件）", lines)
-        self.assertIn("- 資料にあった確度の語が最終稿にない: 未確認", lines)
+        self.assertIn("- 資料にあった確度の言葉が最終稿にない: 未確認", lines)
         self.assertIn("- 資料にない語: 自動", lines)
         self.assertIn(MATERIALS_DISCLAIMER, process.stdout)
         self.assertNotIn("■ 意味が変わる恐れ", process.stdout)
@@ -2836,10 +2836,10 @@ class TestReviewFixes(CheckCase):
                 self.assertNotIn("Traceback", process.stderr)
         self.assertFalse(state.exists())
 
-    # --- agent 4: partial の状態の行と3行目 ---
+    # --- agent 4: partial のステータス行と3行目 ---
 
     def test_partial_run_does_not_report_risks_of_checks_that_did_not_run(self):
-        """3.10 と 3.5: diff を実行できなかった partial では、状態の行に meaning_risk= を出さない（0件と読めるため）。
+        """3.10 と 3.5: diff を実行できなかった partial では、ステータス行に meaning_risk= を出さない（0件と読めるため）。
         3行目は完了報告の「実行した検査」に対応するので、実行できた検査だけを並べる（agent 4）。"""
         scripts = self.copy_scripts("skill-broken-diff")
         inject_cli_exit_3(scripts / "yomiyasu_diff.py")
@@ -2874,7 +2874,7 @@ class TestReviewFixes(CheckCase):
 
     def test_materials_is_called_by_its_report_name_in_human_lines(self):
         """5.2: 完了報告の検査名は lint、diff、資料との照合、最終稿の照合。run の partial の1行目と verify の1行目は
-        materials を「資料との照合」と書く（状態の行の checks= と failed= は名前のまま。agent 15）。"""
+        materials を「資料との照合」と書く（ステータス行の checks= と failed= は名前のまま。agent 15）。"""
         worker = (
             "import importlib.util, sys\n"
             "spec = importlib.util.spec_from_file_location('_check_under_test', sys.argv[1])\n"

@@ -7,7 +7,7 @@
 
 - contrast_reversal は meaning_risks に入る（意味が変わる恐れの節に出す）が、--fail-on=meaning-risk には数えない。
 - 硬化の検査は diff の JSON の stiffness（最後のキー）と、レポートの「■ 文体の硬化」の節に出す。見直し候補の件数
-  （candidate_count）と状態の行には入れない（既存の出力の形を変えない）。文書の種類が formal なら参考（level info）。
+  （candidate_count）とステータス行には入れない（既存の出力の形を変えない）。文書の種類が formal なら参考（level info）。
 - 名詞化の言い回しの一覧は references/lists/nominalization.txt（ルートと skills の両方）。diff はスクリプトの隣の
   ../references/lists/ を読み、なければ内蔵の一覧で動く。
 """
@@ -278,7 +278,7 @@ class StiffnessTest(unittest.TestCase):
                 self.assertEqual(self.stiffness(*STIFF_DETECT_1, doc_type=value)[1]["level"], "review")
 
     def test_not_counted_in_candidates_status_or_fail_on(self):
-        """硬化の検査は見直し候補を出すだけ。candidate_count、状態の行、--fail-on、meaning_risks には入れない（2.4）。"""
+        """硬化の検査は見直し候補を出すだけ。candidate_count、ステータス行、--fail-on、meaning_risks には入れない（2.4）。"""
         before, after = STIFF_NONE_1[0], STIFF_DETECT_1[1]
         result = diff(*STIFF_DETECT_1)
         base = diff(STIFF_DETECT_1[0], STIFF_DETECT_1[1])
@@ -366,7 +366,7 @@ class ListFileTest(unittest.TestCase):
 class JsonAndReportTest(unittest.TestCase):
     def test_new_keys_are_added_after_full_diff(self):
         """新しい出力は追加の項目。既存のキーの順は変えず、full_diff のあとに stiffness と tone を足す。
-        diff の詰めの直し（反証で見つけた例）で、気持ちの語の一覧の出どころ（feeling）を最後に足した。
+        diff の詰めの直し（反証で見つけた例）で、気持ちの言葉の一覧の出どころ（feeling）を最後に足した。
         2.4.0 で、原文にない人や担当を足した文（added_actors）を最後に足した。
         2.5.0 で、見出しの形の変化（heading_shapes）と、読点が増えた候補（comma_increase）を最後に足した。"""
         keys = list(diff(*DETECT))

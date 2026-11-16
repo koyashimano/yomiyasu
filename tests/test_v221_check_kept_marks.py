@@ -1,4 +1,4 @@
-"""v2.2.1: check が、最終稿に残った直訳語（calque）と語の一覧（project_term）の語を「残した印の語」として出すかを確かめる。
+"""v2.2.1: check が、最終稿に残った直訳語（calque）と用語リスト（project_term）の語を「残した印の語」として出すかを確かめる。
 
 - run は、頭の一覧のあとに「残した印の語: 語（種類。L行）」の行を、「■ 意味が変わる恐れ」のあとに「■ 残した印の語」の節を出す。
 - verify は、記録と合ったときに同じ語を「残した印の語:」の行で出す（記録の lint の要約 kept_marks を読むだけ）。
@@ -55,14 +55,14 @@ class KeptMarksTest(unittest.TestCase):
     def test_run_lists_the_kept_words_in_the_head_and_a_section(self):
         _, (code, out, err) = self.run_final(KEPT)
         self.assertEqual((code, err), (0, ""))
-        head = [line for line in out.splitlines()[:8] if line.startswith("残した指摘の語: ")]
+        head = [line for line in out.splitlines()[:8] if line.startswith("残した指摘の言葉: ")]
         self.assertEqual(len(head), 1, out)
-        self.assertIn("要求（語の一覧。L3）", head[0])
+        self.assertIn("要求（用語リスト。L3）", head[0])
         self.assertIn("に響く（直訳語。L5）", head[0])
-        self.assertIn("■ 残した指摘の語（最終稿の直訳語と語の一覧の指摘。2語）", out)
-        section = out.split("■ 残した指摘の語（", 1)[1].split("\n\n", 1)[0]
+        self.assertIn("■ 残した指摘の言葉（最終稿の直訳語と用語リストの指摘。2語）", out)
+        section = out.split("■ 残した指摘の言葉（", 1)[1].split("\n\n", 1)[0]
         self.assertIn("「書き手に確かめたい点」で尋ねる", section)
-        self.assertIn("- 要求（語の一覧。L3）", section)
+        self.assertIn("- 要求（用語リスト。L3）", section)
 
     def test_verify_repeats_the_kept_words_and_replay_matches(self):
         final, (code, _, _) = self.run_final(KEPT)
@@ -71,7 +71,7 @@ class KeptMarksTest(unittest.TestCase):
         self.assertEqual((code, err), (0, ""))
         lines = out.splitlines()
         self.assertEqual(len(lines), 5, lines)
-        self.assertTrue(lines[4].startswith("残した指摘の語: 要求（語の一覧。L3）、に響く（直訳語。L5）。"), lines)
+        self.assertTrue(lines[4].startswith("残した指摘の言葉: 要求（用語リスト。L3）、に響く（直訳語。L5）。"), lines)
         code, out, err = self.check("verify", "--final", final, "--replay")
         self.assertEqual((code, err), (0, ""))
         self.assertIn("replay=ok", out)
@@ -88,7 +88,7 @@ class KeptMarksTest(unittest.TestCase):
     def test_nothing_is_added_without_kept_marks(self):
         final, (code, out, err) = self.run_final(CLEAN)
         self.assertEqual((code, err), (0, ""))
-        self.assertNotIn("残した指摘の語", out)
+        self.assertNotIn("残した指摘の言葉", out)
         code, out, _ = self.check("verify", "--final", final)
         self.assertEqual(code, 0)
         self.assertEqual(len(out.splitlines()), 4)
@@ -99,7 +99,7 @@ class KeptMarksTest(unittest.TestCase):
         text = TECH + "".join("外部からの要求は、どれも公開エンドポイントを通ります。\n\n" for _ in range(8))
         _, (code, out, _) = self.run_final(text, "--no-record")
         self.assertEqual(code, 0)
-        self.assertIn("要求（語の一覧。L3、L5、L7、L9、L11、ほか3行）", out)
+        self.assertIn("要求（用語リスト。L3、L5、L7、L9、L11、ほか3行）", out)
 
 
 class KeptMarksHelperTest(unittest.TestCase):
@@ -115,7 +115,7 @@ class KeptMarksHelperTest(unittest.TestCase):
         if rule == "calque":
             message = "直訳語（型2: 実物の名前の代わりに場所のたとえを使う名詞。当たった言い方: {}）の候補です。".format("、".join(words))
         else:
-            message = "語の一覧（flag.txt）の語（{}）の候補です。".format("、".join(words))
+            message = "用語リスト（flag.txt）の言葉（{}）の候補です。".format("、".join(words))
         return {"rule": rule, "line": line, "severity": "info", "message": message + "文脈を見て、誰が何をどうするかを書き直すか確かめてください。"}
 
     def test_same_word_with_both_marks_is_listed_once_as_project_term(self):

@@ -831,7 +831,7 @@ class TestOutputWording(CheckCase):
     """勧め54〜59 の出力の文。"""
 
     def test_status_line_is_last_in_the_merged_output_of_a_partial_run(self):
-        """勧め54: 終了コード3のとき、標準エラーを先に書くので、2>&1 でまとめた出力の最後は状態の行になる。
+        """勧め54: 終了コード3のとき、標準エラーを先に書くので、2>&1 でまとめた出力の最後はステータス行になる。
         パイプでも端末でも同じ順にする（端末では標準出力が行ごとに書き出されるので、pty で確かめる）。"""
         a = self.write("a.md", "保存期間は3日です。\n")
         b = self.write("b.md", "保存期間は30日です。\n")

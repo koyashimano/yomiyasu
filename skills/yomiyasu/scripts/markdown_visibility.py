@@ -852,7 +852,7 @@ def context_label(doc_type: object, reader: object) -> str:
         "{}（{}）".format(readers[reader], reader) if reader else "指定なし")
 
 
-# ---- 語の一覧（.yomiyasu-words/ の allow.txt と flag.txt）----
+# ---- 用語リスト（.yomiyasu-words/ の allow.txt と flag.txt）----
 # lint、diff、check、フックの4本が同じ探し方と読み方を使うので、ここに1つだけ置く。
 # .git まで上へたどり、linked worktree に一覧がなければ元の checkout を探す。.yomiyasu/ の中は探さない。
 
@@ -860,7 +860,7 @@ WORDS_FOLDER = ".yomiyasu-words"
 # (キーの先頭に付ける語, ファイルの名前)。context.words のキーと出力の行の順もこの順
 WORDS_FILES = (("allow", "allow.txt"), ("flag", "flag.txt"))
 WORDS_MAX_LINES = 10000
-# 3.0.0: flag.txt の「使わない語<TAB>使う語」の使う語の字数。使う語は文書にない字のまま出力に出るので、
+# 3.0.0: flag.txt の「使わない語<TAB>推奨語」の推奨語の字数。推奨語は文書にない字のまま出力に出るので、
 # flag-patterns.txt の名前（PATTERN_NAME_MAX）と同じように上限を置く
 FLAG_REPLACEMENT_MAX = 80
 # 3.0.0: 語の正規表現の一覧（1行に「名前<TAB>正規表現」）。WORDS_FILES とは別に読み、ファイルがあるときだけ context.words に
@@ -877,7 +877,7 @@ _WORDS_ABSENT = (FileNotFoundError, NotADirectoryError)
 
 
 class WordsError(Exception):
-    """語の一覧を読めない（ないフォルダの --words、UTF-8 でない、1万行を超える、開けない）。終了コード2にする。
+    """用語リストを読めない（ないフォルダの --words、UTF-8 でない、1万行を超える、開けない）。終了コード2にする。
     str() は標準エラーにそのまま書ける1行の文（入力の誤りの「Error opening file …」と同じ形）。"""
 
 
@@ -933,7 +933,7 @@ def _shared_checkout(common_dir: Path) -> Path | None:
 
 
 def _worktree_words_folder(git_file: Path) -> str | None:
-    """linked worktree の .git ファイルの gitdir と commondir から、元の checkout の語の一覧を探す。
+    """linked worktree の .git ファイルの gitdir と commondir から、元の checkout の用語リストを探す。
     checkout は _shared_checkout で決める（共有の git フォルダの core.worktree か、bare でない .git の親）。
     .git ファイルや commondir を読めないとき、checkout が決まらないとき（bare リポジトリなど）は None。"""
     try:
@@ -960,7 +960,7 @@ def _worktree_words_folder(git_file: Path) -> str | None:
 
 
 def find_words_folder(cwd: str | None, option: str | None = None) -> str | None:
-    """語の一覧のフォルダの絶対パスか None（フォルダがない）。
+    """用語リストのフォルダの絶対パスか None（フォルダがない）。
 
     1 option（--words）があれば、そのフォルダ（相対パスは cwd から。ないかフォルダでなければ WordsError）。
     2 cwd から上へたどり、.git（フォルダでもファイルでもよい）がある最初のフォルダの .yomiyasu-words/。
@@ -1011,11 +1011,11 @@ def _words_lines(path: str, data: bytes) -> list[str]:
 
 
 def _flag_entries(path: str, data: bytes) -> list[tuple[str, str]]:
-    """flag.txt を (使わない語, 使う語) の並びにする。行の前後の空白（TAB も）を除いてから最初の TAB で分け、
-    左と右の前後の空白を除く。TAB がなければ使う語は ""。空行とコメントは除く。行頭が TAB の行（字下げした語）は、
-    2.5.0 までと同じく1語として読む。使う語の中に TAB が残る行（3列の行）と、使う語が FLAG_REPLACEMENT_MAX 字を
+    """flag.txt を (使わない語, 推奨語) の並びにする。行の前後の空白（TAB も）を除いてから最初の TAB で分け、
+    左と右の前後の空白を除く。TAB がなければ推奨語は ""。空行とコメントは除く。行頭が TAB の行（字下げした語）は、
+    2.5.0 までと同じく1語として読む。推奨語の中に TAB が残る行（3列の行）と、推奨語が FLAG_REPLACEMENT_MAX 字を
     超える行は WordsError（ファイル名と行番号つき）。UTF-8 でないときと1万行を超えるときも WordsError。
-    使う語が使わない語と同じ行は、使う語のない行として読む（どの当たりも使う語の中に収まり、その語の指摘が
+    推奨語が使わない語と同じ行は、推奨語のない行として読む（どの当たりも推奨語の中に収まり、その語の指摘が
     1つも出なくなるのを避ける）。"""
     entries = []
     for number, row in enumerate(_words_text_rows(path, data), 1):
@@ -1025,10 +1025,10 @@ def _flag_entries(path: str, data: bytes) -> list[tuple[str, str]]:
         word, _, replacement = row.partition("\t")
         word, replacement = word.strip(), replacement.strip()
         if "\t" in replacement:
-            raise WordsError("Error opening file {}: {}行目の使う語の中にタブがあります（1行に書けるのは"
-                             "「使わない語<TAB>使う語」の2つまでです）".format(path, number))
+            raise WordsError("Error opening file {}: {}行目の推奨語の中にタブがあります（1行に書けるのは"
+                             "「使わない語<TAB>推奨語」の2つまでです）".format(path, number))
         if len(replacement) > FLAG_REPLACEMENT_MAX:
-            raise WordsError("Error opening file {}: {}行目の使う語は {} 字までです".format(
+            raise WordsError("Error opening file {}: {}行目の推奨語は {} 字までです".format(
                 path, number, FLAG_REPLACEMENT_MAX))
         entries.append((word, "" if replacement == word else replacement))
     return entries
@@ -1279,7 +1279,7 @@ def load_words(folder: str) -> dict | None:
     """フォルダの allow.txt と flag.txt を読む。どちらもないときは None（一覧なし）。
 
     戻り値は {"path": フォルダ, "allow": 語のタプル, "flag": 語のタプル, "allow_lines": 語の数, "flag_lines": 語の数,
-    "allow_sha256": 中身の SHA-256 か None, "flag_sha256": …, "flag_replacements": {使わない語: 使う語}}。
+    "allow_sha256": 中身の SHA-256 か None, "flag_sha256": …, "flag_replacements": {使わない語: 推奨語}}。
     flag は TAB の左だけ。ないほうのファイルは、語なし、数0、SHA-256 は None。
     3.0.0: flag-patterns.txt があれば、"flag_patterns"（(名前, 正規表現の文字列, 組んだ正規表現, 必ず当たる字の並び) の
     タプル）、"flag_patterns_lines"（パターンの数）、"flag_patterns_sha256" も足す（ないときは、この3つのキーを足さない）。
@@ -1316,7 +1316,7 @@ def load_words(folder: str) -> dict | None:
 
 
 def resolve_words(cwd: str | None, option: str | None = None, disabled: bool = False) -> dict | None:
-    """--words と --no-words から語の一覧を決める。一覧を使うときは load_words の値、使わないときは None。
+    """--words と --no-words から用語リストを決める。一覧を使うときは load_words の値、使わないときは None。
     disabled（--no-words）なら探さない。cwd は作業ディレクトリ（読めなければ None）。読めない一覧は WordsError。"""
     if disabled:
         return None
@@ -1336,8 +1336,8 @@ def current_directory() -> str | None:
 # lint、diff、check の3本は、コマンドラインで名前を渡されたファイルのうち、作業フォルダの中で、作業フォルダからの道筋に
 # 点で始まる部分（.env、.git/、sub/.secret/ など）がないものだけを読む。編集中の文書に紛れ込んだ指示で、事前に許された
 # コマンドが鍵や認証のファイルを読んで中身を出さないようにするため。標準入力（-）はいつでも読める。道具が自分で探すフォルダ
-# （状態フォルダ .yomiyasu/、語の一覧 .yomiyasu-words/、references/lists/）と --words のフォルダは、ここでは見ない。
-# 語の一覧を探すときは、linked worktree の .git ファイルと、git フォルダの commondir、config、config.worktree も読む
+# （状態フォルダ .yomiyasu/、用語リスト .yomiyasu-words/、references/lists/）と --words のフォルダは、ここでは見ない。
+# 用語リストを探すときは、linked worktree の .git ファイルと、git フォルダの commondir、config、config.worktree も読む
 # （_worktree_words_folder）。
 
 INPUT_PATH_OUTSIDE = "作業フォルダの外にあるファイルは読みません"
@@ -1421,9 +1421,9 @@ def words_context(words: dict) -> dict:
 
 
 def words_label(context: dict) -> str:
-    """人が読む出力の「語の一覧: <パス>（allow N語、flag N語）。」。flag-patterns.txt があれば「、flag-patterns N行」を足す。
+    """人が読む出力の「用語リスト: <パス>（allow N語、flag N語）。」。flag-patterns.txt があれば「、flag-patterns N行」を足す。
     context は words_context の値（読むだけ）。"""
     patterns = ("、flag-patterns {}行".format(context["flag_patterns_lines"])
                 if context.get("flag_patterns_sha256") is not None else "")
-    return "語の一覧: {}（allow {}語、flag {}語{}）。".format(context["path"], context["allow_lines"], context["flag_lines"],
+    return "用語リスト: {}（allow {}語、flag {}語{}）。".format(context["path"], context["allow_lines"], context["flag_lines"],
                                                            patterns)

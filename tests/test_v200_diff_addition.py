@@ -1,4 +1,4 @@
-"""状態の語の消えと書き足しの検出。例の文はすべて合成。
+"""状態の言葉の消えと書き足しの検出。例の文はすべて合成。
 
 評価の足し（claim/evaluation）と一般化・勧めの足し（claim/general）は、語の表では拾いきれなかったので diff から外した。
 その例（R2 の評価、R3、R6、R7、R9〜R11、RN9）は、文を変えずに「出ない」ことを確かめる例にしている。
@@ -254,7 +254,7 @@ class Contracts(unittest.TestCase):
         self.assertEqual(result['fail_on_meaning_risk_count'], diff.fail_on_count(BASELINE['risks']['PN18']))
 
     def test_state_kept_on_another_topic_is_lost(self):
-        # 別の項目の状態の語や、済んだと言い切った文の否定では、状態が残ったとみなさない。
+        # 別の項目の状態の言葉や、済んだと言い切った文の否定では、状態が残ったとみなさない。
         for name in ('S11', 'S12'):
             self.assertTrue(any(r['kind'] == 'state' for r in additions(diff.diff(*EXAMPLES[name]))), name)
         kept = diff.diff('予約がまだ済んでいないため、前日までに担当を決めます。',
@@ -266,7 +266,7 @@ class Contracts(unittest.TestCase):
         self.assertFalse(any(r['kind'] == 'promise' for r in additions(diff.diff(old, old + '\n「明日、迎えに行きます」'))))
 
     def test_human_lines_and_fail_on_summary(self):
-        labels = {'S6': '状態の語が消えた', 'P1': '原文にない書き手の約束',
+        labels = {'S6': '状態の言葉が消えた', 'P1': '原文にない書き手の約束',
                   'P2': '原文にない保証', 'P7': '原文にない再発防止の誓い',
                   'R1': '原文にない因果のつながり',
                   'PN18': '原文にない「〜します」（後1行目）: 「軽減します。」。--fail-on には数えません。',
@@ -280,8 +280,8 @@ class Contracts(unittest.TestCase):
             self.assertNotIn('原文にない一般化・勧め', text)
         found = diff.diff(*EXAMPLES['S1'])['meaning_risks']
         line = diff._fail_on_line(len(found) + 1, diff.fail_on_count(found), found)
-        self.assertIn('・状態の語・約束', line)
-        self.assertIn('原文の状態の語', diff._FAIL_ON_HELP)
+        self.assertIn('・状態の言葉・約束', line)
+        self.assertIn('原文の状態の言葉', diff._FAIL_ON_HELP)
         self.assertIn('原文にない因果のつながりを足した書き換えと', diff._FAIL_ON_HELP)
         self.assertNotIn('一般化', diff._FAIL_ON_HELP)
         self.assertNotIn('評価', diff._FAIL_ON_HELP)
@@ -344,7 +344,7 @@ class CheckAddition(CheckCase):
         self.assertTrue(result['fail_on_hit'])
         self.assertGreaterEqual(result['fail_on_meaning_risk_count'], 2)
         result = self.check('run', '--source', old, '--final', new)
-        self.assertIn('状態の語が消えた', result.stdout)
+        self.assertIn('状態の言葉が消えた', result.stdout)
         self.assertIn('原文にない書き手の約束', result.stdout)
 
     def test_no_addition_keeps_run_lines(self):
@@ -353,7 +353,7 @@ class CheckAddition(CheckCase):
             expected = BASELINE['check_lines'][name]
             stable = [line for line in lines if not line.startswith(('検査を実行しました', 'yomiyasu-check:', '記録:'))]
             self.assertEqual(stable, expected)
-            self.assertFalse(any('状態の語が消えた' in line or '原文にない書き手の約束' in line for line in lines))
+            self.assertFalse(any('状態の言葉が消えた' in line or '原文にない書き手の約束' in line for line in lines))
 
 
 if __name__ == '__main__':
