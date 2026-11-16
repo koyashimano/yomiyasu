@@ -61,7 +61,7 @@ class SkillTextTest(unittest.TestCase):
 
     def test_stdin_only_when_files_cannot_be_written(self):
         step3 = section(self.skill, "### Step 3:")
-        only_when = "ファイルを書けないとき（ファイルに保存しないよう頼まれたときを含む）だけ `run --stdin` を使い"
+        only_when = "ファイルを書けないとき（ファイルに保存しないよう頼まれたときを含む）のみ `run --stdin` を使い"
         self.assertIn(only_when, step3)
         # 3.0.0 で標準入力の例の前の文から条件を外し（条件は上の文にある）、「標準入力では次のように渡します」にした。
         # 条件の文のあとに例の前置きがあり、そのあとに標準入力の run の例があることを見る
@@ -82,14 +82,14 @@ class SkillTextTest(unittest.TestCase):
         # 設計の用語の並びは 3.0.0 で「責務を持つ、依存する」の2つにした。「委譲する」は字数のため外した。
         # 「呼び出す、返す、受け取る」は、直す先の「何を受け取り、何を返し、何を呼ぶかの文」で確かめる。
         # オブジェクト指向の説明で使う「〜はデータを知っている」を残す決まりは、設計の用語と同じ文に入れた
-        for word in ("何を受け取り、何を返し、何を呼ぶか", "知っている", "語る", "人の知識や役目にたとえた言い方",
+        for word in ("何を受け取り、何を返し、何を呼ぶか", "知っている", "語る", "人の知識や役目にたとえた表現",
                      "分からなければ残して尋ねる",
                      "設計の用語（責務を持つ、依存する）と、原文や資料がその用語で書いたオブジェクト指向の「〜はデータを知っている」は残す"):
             with self.subTest(word=word):
                 self.assertIn(word, part)
         # 人の役目のたとえの例（門番、交通整理、引き受ける）は 3.0.0 で字数のため SKILL.md から外した。
         # 例は tech.md と slop-catalog.md 8章にある
-        tech = [line for line in text(REFS / "domains" / "tech.md").split("\n") if "人の役目にたとえた言い方" in line]
+        tech = [line for line in text(REFS / "domains" / "tech.md").split("\n") if "人の役目にたとえた表現" in line]
         self.assertEqual(len(tech), 1)
         for word in ("知っている", "語る", "門番", "交通整理"):
             with self.subTest(tech=word):
@@ -105,17 +105,17 @@ class SkillTextTest(unittest.TestCase):
         negation = section(self.skill, "### セルフラベリングと否定対比の整理")
         # 3.0.0 で「〜ではありません」「〜を意味するわけではありません」で終わる説明の文を、「〜ではありません」だけで
         # 薄い用語の説明の文にまとめた
-        self.assertIn("用語の説明が「〜ではありません」だけで薄いときは、原文や資料から何であるかを先に書き、否定はあとに残す",
+        self.assertIn("用語の説明が「〜ではありません」のみで薄いときは、原文や資料から何であるかを先に書き、否定は後に残す",
                       negation)
         nouns = section(self.skill, "### 内容に合わない大げさな名詞の整理")
         # 漢語の名詞の例は 3.0.0 で字数のため「分離」「保証」「管理」にした（「対応」「担保」は例から外した）。
         # 「〜を行う」はこの文に入った
-        self.assertIn("「分離」「保証」「管理」のような漢語の名詞や「〜を行う」だけで動作を済ませた文は、"
-                      "原文や資料に動作と条件があるときだけその文に書き直し、なければ残して尋ねる", nouns)
+        self.assertIn("「分離」「保証」「管理」のような漢語の名詞や「〜を行う」のみで動作を済ませた文は、"
+                      "原文や資料に動作と条件があるときのみその文に書き直し、なければ残して尋ねる", nouns)
         # 3.0.0 で節ごとの「言い直しテストの6点は変えません」を外し、Step 2 の項目3で、直すすべての案に言い直しテストを
         # 当てる文にした
         step2 = section(self.skill, "### Step 2:")
-        self.assertIn("直す前に案を1つ書き、原文と6点を比べる（言い直しテスト）", step2)
+        self.assertIn("修正する前に案を1つ書き、原文と6点を比べる（言い直しテスト）", step2)
         self.assertIn("1つでも変わる案は捨てて原文を残し", step2)
         self.assertIn("（例は `references/rephrase-test.md`）", step2)
         # 「語を同じ意味の別の漢語に替えるだけでは済ませません」は 3.0.0 で字数のため外した（docs/limitations.md の、3.0.0 の SKILL.md に入れていない決まりの一覧）
@@ -124,8 +124,8 @@ class SkillTextTest(unittest.TestCase):
         commas = section(self.skill, "### 文長と読点の調整")
         # 3.0.0 で、推敲で新しく置く読点を残す読点に限る文は、この節の「間を作るだけの読点は外し、新しく足しません」と、
         # Step 5 の「増えた読点が残す読点に当たらなければ外す」に分かれた
-        self.assertIn("短い目的語の「を」のすぐあとで間を作るだけの読点は外し、新しく足さない", commas)
-        self.assertIn("外すのは読点だけで、語順と述語は変えない", commas)
+        self.assertIn("短い目的語の「を」のすぐ後で間を作るのみの読点は除き、新しく追加しない", commas)
+        self.assertIn("除くのは読点のみで、語順と述語は変えない", commas)
         # 「6字以内の短い目的語の「を、」も候補に出ます」（lint の pause_comma の候補の説明）は 3.0.0 で SKILL.md から外した。
         # 同じ説明は review-points.md の pause_comma の項にある
         for base in (REFS, ROOT / "skills" / "yomiyasu" / "references"):
@@ -135,7 +135,7 @@ class SkillTextTest(unittest.TestCase):
                 self.assertIn("6字以内の短い目的語の「を、」も候補に出る", points[0])
         self.assertNotIn("（「を、」は候補に出ません）", self.skill)
         self.assertNotIn("（「を、」は候補に出ない）", self.skill)
-        self.assertIn("原文と最終稿で地の文の読点の数を比べ、増えた読点が「文長と読点の調整」の残す読点に当たらなければ外す",
+        self.assertIn("原文と最終稿で地の文の読点の数を比べ、増えた読点が「文長と読点の調整」の残す読点に当たらなければ除く",
                       section(self.skill, "### Step 5:"))
 
     def test_chapter5a_sentence_and_references(self):
@@ -143,15 +143,15 @@ class SkillTextTest(unittest.TestCase):
         # とき、」の形にすると、議事録の見出しや文書の題まで、指定されたときだけ残すように読めるので、名詞を並べる形にした）。
         # 見出しの形の中身（長さ、言い切り、番号、記号）とまとめのページは slides.md にある
         heading = section(self.skill, "### 案内用の見出し")
-        self.assertRegex(heading, r"依頼で指定された見出しの形とまとめの節、[^。]*文書の題、[^。]*議事録の見出し、[^。]*は直さない。")
+        self.assertRegex(heading, r"依頼で指定された見出しの形とまとめの節、[^。]*文書の題、[^。]*議事録の見出し、[^。]*は修正しない。")
         self.assertNotIn("を指定されたとき、", heading)
         # 繰り返すだけの「まとめ」を削る文の例外は、3.0.0 で「段落と文の論理構造（つながり）」の残すものの並びに入った
         self.assertRegex(section(self.skill, "### 段落と文の論理構造（つながり）"),
                          r"「まとめ」は削る。[^。]*依頼で指定されたまとめ[^。]*は残す。")
         slides = text(REFS / "doc-types" / "slides.md")
-        self.assertIn("依頼で見出しの形（長さ、言い切り、番号、記号）や、まとめのページを指定されているときは直さず", slides)
-        self.assertIn("まとめのページを指定されているときは直さず", slides)
-        self.assertIn("依頼で見出しの形を指定されていれば直さない", slides)
+        self.assertIn("依頼で見出しの形（長さ、言い切り、番号、記号）や、まとめのページを指定されているときは修正せず", slides)
+        self.assertIn("まとめのページを指定されているときは修正せず", slides)
+        self.assertIn("依頼で見出しの形を指定されていれば修正しない", slides)
 
     def test_chapter4_pointer(self):
         self.assertIn("`references/slop-catalog.md` 10章", section(self.skill, "### Step 2:"))
@@ -165,7 +165,7 @@ class ReferenceTextTest(unittest.TestCase):
         catalog = text(REFS / "slop-catalog.md")
         self.assertTrue(catalog.rstrip().split("\n## ")[-1].startswith("10. 2026年に見つかった言い回し"))
         chapter = section(catalog, "## 10. 2026年に見つかった言い回し")
-        self.assertIn("| 言い回し | 用例 | 何が足りない文か | 確かめる問い |", chapter)
+        self.assertIn("| 表現 | 用例 | 何が足りない文か | 確認する問い |", chapter)
         for word in ("見立てです", "潜む", "が招く", "欠かせない存在", "という挙動を排除する", "なんよ", "漢語の名詞。",
                      "レベルの", "テーブルの上にある", "ここで効いてくるのが"):
             with self.subTest(word=word):

@@ -133,8 +133,8 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
         step2 = self.skill.find("### Step 2:")
         step3 = self.skill.find("### Step 3:")
         rephrase = self.skill.find("（言い直しテスト）", step2)
-        sentence = self.skill.find("自分が書いた原稿では、読み手が動く値と主張を資料と文脈で確かめる。")
-        edit_item = self.skill.find("\n4. 本文は1か所ずつ、前後の文を読んで直す。", step2)
+        sentence = self.skill.find("自分が書いた原稿では、読み手が動く値と主張を資料と文脈で確認する。")
+        edit_item = self.skill.find("\n4. 本文は1か所ずつ、前後の文を読んで修正する。", step2)
         self.assertTrue(0 <= step2 < rephrase < sentence < edit_item < step3,
                         (step2, rephrase, sentence, edit_item, step3))
         self.assertEqual(self.skill.count("`references/fact-recovery.md` を読み"), 1)
@@ -142,7 +142,7 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
         # v2.5.0 と同じ。言い直しテストのあとの同じ文にある
         reading = self.skill[sentence:self.skill.index("`references/fact-recovery.md` を読み", sentence)]
         for words in ("比喩や誇張で見えない中身", "抜けた主語・数値・条件", "出典のない値", "会話や資料の値を本文に入れる前",
-                      "原稿だけを渡されて読み手が動けない値が抜けているとき"):
+                      "原稿のみを渡されて読み手が動けない値が抜けているとき"):
             with self.subTest(words=words):
                 self.assertIn(words, reading)
 
@@ -156,7 +156,7 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
         self.assertIn("読み取れないことの注記、質問、「要確認」のような編集表示は本文に入れず", provisional)
         fact_heading = self.skill.index("### 事実の確かめ\n")
         self.assertIn("確かめられなかった点", self.skill[fact_heading:self.skill.index("### 確認の記録", fact_heading)])
-        self.assertIn("コマンドの出力）に書いてあることだけ", self.skill)
+        self.assertIn("コマンドの出力）に書いてあることのみ", self.skill)
 
     def test_reference_states_its_own_rules(self):
         """fact-recovery.md が、SKILL.md にない決まりを SKILL.md に任せていない（資料での訂正、戻すだけの修正の例外、
@@ -165,11 +165,12 @@ class TestSkillMentionsFactCheck(FactRecoveryCase):
             text = (base / "fact-recovery.md").read_text(encoding="utf-8")
             with self.subTest(base=str(base.relative_to(ROOT))):
                 self.assertNotIn("SKILL.md の決まりで行う", text)
+                self.assertNotIn("SKILL.md の規則で行う", text)
                 self.assertIn("利用者が渡した資料での訂正", text)
                 self.assertIn("最優先ルール", text)
-                self.assertIn("この場合だけの例外", text)
+                self.assertIn("この場合に限った例外", text)
                 self.assertIn("問いは3つまで", text)
-                for word in ("この会話で自分が書いたほかのファイル", "CLAUDE.md", "書き手の分からないファイル",
+                for word in ("この会話で自分が書いた他のファイル", "CLAUDE.md", "書き手の分からないファイル",
                              "途中で切れた出力"):
                     self.assertIn(word, text)
 

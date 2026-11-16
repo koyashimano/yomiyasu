@@ -38,19 +38,19 @@ class LabelTest(unittest.TestCase):
         cls.labels = section(text(SKILL), "### 太字とラベル")
 
     def test_label_is_removed_alone_only_when_every_word_is_in_the_sentence(self):
-        self.assertIn("ラベルを外すだけにして語を足さないのは、ラベルの語がすべて説明の文にあるときだけ。", self.labels)
-        self.assertIn("説明の文にないラベルの語は落とさずに文へ入れ、1文にする", self.labels)
+        self.assertIn("ラベルを除くのみにして語を追加しないのは、ラベルの語が全て説明の文にあるときのみ。", self.labels)
+        self.assertIn("説明の文にないラベルの語は省かずに文へ入れ、1文にする", self.labels)
         self.assertNotIn("説明の文がすでにラベルと同じ対象と条件を述べているなら", self.labels)
 
     def test_meaning_guard_is_kept(self):
-        for words in ("2つを1つの条件にまとめず、ラベルとコロンを残して太字だけを外す",
-                      "ラベルを文に入れたら、入れる前とラベルの働きが同じかを確かめる",
-                      "入れたあとで、条件や否定、「〜し、」で続けた節の掛かる範囲が変わったら、ラベルとコロンの形に戻す",
+        for words in ("2つを1つの条件にまとめず、ラベルとコロンを残して太字のみを除く",
+                      "ラベルを文に入れたら、入れる前とラベルの働きが同じかを確認する",
+                      "入れた後で、条件や否定、「〜し、」で続けた節の掛かる範囲が変わったら、ラベルとコロンの形に戻す",
                       "番号と項目の数と順は保つ"):
             with self.subTest(words=words):
                 self.assertIn(words, self.labels)
         # 意味の守りは、ラベルの語を入れる決まりのあとに置く（入れたあとで確かめる）
-        self.assertLess(self.labels.index("説明の文にないラベルの語は落とさずに文へ入れ"), self.labels.index("入れたあとで、"))
+        self.assertLess(self.labels.index("説明の文にないラベルの語は省かずに文へ入れ"), self.labels.index("入れた後で、"))
 
     def test_example_has_a_label_word_missing_from_the_sentence_and_keeps_it(self):
         match = re.search(r"`- \*\*(?P<label>[^*]+)\*\*：(?P<body>[^`]+)` → `- (?P<merged>[^`]+)`", self.labels)
@@ -71,7 +71,7 @@ class NakuCommaTest(unittest.TestCase):
 
     def test_skill_shows_no_comma_after_naku(self):
         skill = text(SKILL)
-        self.assertIn("「AではなくB」の「なく」のあと", section(skill, "### 文長と読点の調整"))
+        self.assertIn("「AではなくB」の「なく」の後", section(skill, "### 文長と読点の調整"))
         self.assertNotIn("ではなく、", skill)
         negation = section(skill, "### セルフラベリングと否定対比の整理")
         self.assertIn("「原因はキャッシュではなくDNSの設定でした」", negation)
@@ -79,7 +79,7 @@ class NakuCommaTest(unittest.TestCase):
 
     def test_merge_does_not_add_a_comma(self):
         merge = section(text(SKILL), "### 2文の否定対比と「もちろん、」")
-        self.assertIn("否定を残して1文にまとめ、「なく」のあとに読点を足さない。", merge)
+        self.assertIn("否定を残して1文にまとめ、「なく」の後に読点を追加しない。", merge)
 
     def test_rephrase_test_examples(self):
         body = text(REFS / "rephrase-test.md")
@@ -92,7 +92,7 @@ class NakuCommaTest(unittest.TestCase):
             with self.subTest(row=row[0]):
                 self.assertNotIn("ではなく、", row[1])
         self.assertIn("| 必要だったのは新しい道具ではなく使い方をそろえることだった。 |", fixed)
-        self.assertIn("「なく」のあとに読点を足さない", fixed)
+        self.assertIn("「なく」の後に読点を追加しない", fixed)
         # 原文を残す誤った直しの例も、残す原文に読点を置かない
         self.assertNotIn("ではなく、", section(body, "### 直し方を誤った例（合成）"))
 
@@ -103,7 +103,7 @@ class NakuCommaTest(unittest.TestCase):
         # 2列目は AI の型（原文）なので読点つきのまま。3列目の残す形と直した形は読点なし
         self.assertIn("「Xではなく、Yです」", cells[1])
         self.assertNotIn("ではなく、", cells[2])
-        for words in ("「XではなくYでもある」", "「XではなくYです」", "「XではなくYだ」の1文にまとめ、「なく」のあとに読点を足さない"):
+        for words in ("「XではなくYでもある」", "「XではなくYです」", "「XではなくYだ」の1文にまとめ、「なく」の後に読点を追加しない"):
             with self.subTest(words=words):
                 self.assertIn(words, cells[2])
 
@@ -121,7 +121,7 @@ class CalqueTypesTest(unittest.TestCase):
     def test_five_types(self):
         calques = section(text(SKILL), "### 直訳語、漢語の詰まり、連用形名詞")
         self.assertIn("英語の短い術語に当てた漢字1字の名詞、英語の術語に当てた2字以上の名詞）", calques)
-        self.assertIn("（術語に当てた名詞を定着した呼び名に替えるのは差し替えに入らない）", calques)
+        self.assertIn("（術語を訳した名詞を定着した呼び名に置き換えるのは差し替えに入らない）", calques)
         # lint と calques.md の型5と同じ言い方
         self.assertIn("英語の術語に当てた2字以上の名詞", text(LINT))
         self.assertIn("- 型5: 英語の術語に当てた2字以上の名詞", text(REFS / "calques.md"))
@@ -171,13 +171,13 @@ class PointerTest(unittest.TestCase):
 
     def test_moved_rules_point_to_their_sections(self):
         expect = (
-            ("slop-catalog.md", "SKILL.md「2文の否定対比と「もちろん、」」に従い、「もちろん、」を外す"),
+            ("slop-catalog.md", "SKILL.md「2文の否定対比と「もちろん、」」に従い、「もちろん、」を除く"),
             ("gemini-syntax.md", "SKILL.md「2文の否定対比と「もちろん、」」に従って見直す"),
             ("doc-types/essay.md", "否定を残して1文にまとめる（SKILL.md「2文の否定対比と「もちろん、」」）"),
-            ("slop-catalog.md", "SKILL.md「段落と文の論理構造（つながり）」に従い、宣言の数と続く項目の数が合っている場合だけ"),
-            ("review-points.md", "renyo_noun（2.3.0。他動詞を1語だけ名詞にした語を「の」で受ける形。message に当たった言い方）: "
+            ("slop-catalog.md", "SKILL.md「段落と文の論理構造（つながり）」に従い、宣言の数と続く項目の数が合っている場合に限り"),
+            ("review-points.md", "renyo_noun（2.3.0。他動詞を1語のみ名詞にした語を「の」で受ける形。message に当たった表現）: "
                                  "SKILL.md「直訳語、漢語の詰まり、連用形名詞」"),
-            ("gemini-syntax.md", "1つだけなら太字を残す（SKILL.md「太字とラベル」）"),
+            ("gemini-syntax.md", "1つのみなら太字を残す（SKILL.md「太字とラベル」）"),
             ("doc-types/manual.md", "（SKILL.md「装飾記号の排除と太字の表示、コピー調の抑制」）"),
             ("doc-types/mail.md", "（SKILL.md 2章 Step 1 の4つ目の項目）"),
             ("persona.md", "SKILL.md 2章 Step 1 の4つ目の項目の、書き手の立場と読み手との関係の細部"),
