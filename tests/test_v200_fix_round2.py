@@ -93,7 +93,12 @@ class RephraseTestWordingTest(unittest.TestCase):
 
     def test_detection_is_described_like_review_points(self):
         text = section_text(REFERENCES / "rephrase-test.md", "## 3. 否定対比（AではなくB）")
-        item = [line for line in text.split("\n") if line.startswith("4. ")][0]
+        # 4つ目の項目は、字下げして続けた段落まで含めて見る
+        lines = text.split("\n")
+        start = next(index for index, line in enumerate(lines) if line.startswith("4. "))
+        end = next((index for index in range(start + 1, len(lines))
+                    if lines[index] and not lines[index].startswith(" ")), len(lines))
+        item = "\n".join(lines[start:end])
         for word in ("並べて肯定", "AとB", "Aに加えてB", "AだけでなくB", "平仮名で始まる語", "お知らせ"):
             with self.subTest(word=word):
                 self.assertIn(word, item)
