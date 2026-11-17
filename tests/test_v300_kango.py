@@ -1,7 +1,7 @@
 """v3.0.0: 漢語を和語に開きすぎない決まり（利用者の指摘「確認→確かめ、使用する→使う、停止→止める、現在→今」）。
 
-SKILL.md の「直訳語、漢語の詰まり、連用形名詞」の段落と、和語へ寄せる書き方を条件つきにした references の4ファイル
-（rephrase-test.md、domains/tech.md、slop-catalog.md、gemini-syntax.md）を確かめる。和語の側の例（確かめる、使う、止める）は
+SKILL.md の「直訳語、漢語の詰まり、連用形名詞」の段落と、和語へ寄せる書き方を条件つきにした references の3ファイル
+（domains/tech.md、slop-catalog.md、gemini-syntax.md）を確かめる（rephrase-test.md は 3.1.0 の後で削除した）。和語の側の例（確かめる、使う、止める）は
 禁じる振る舞いを呼ぶおそれがあるので、SKILL.md には漢語の側だけを書く。
 """
 from pathlib import Path
@@ -66,19 +66,14 @@ class KangoReferencesTest(unittest.TestCase):
     def test_wago_preference_is_conditional(self):
         """和語へ寄せる書き方を、文書でふつうに使う漢語には当てない形にした（2つの写しの両方）。"""
         for refs in REF_COPIES:
-            rephrase = text(refs / "rephrase-test.md")
             tech = text(refs / "domains" / "tech.md")
             slop = text(refs / "slop-catalog.md")
             gemini = text(refs / "gemini-syntax.md")
             with self.subTest(copy=str(refs.relative_to(ROOT))):
-                self.assertNotIn("和語の短い言い回しで書けるなら、そちらを採る", rephrase)
-                self.assertIn("反対に、原文が文書で普通に使う漢語（確認する、使用する、停止する）なら、他の規則で修正する所でなければ、"
-                              "和語にする案は採らない", rephrase)
                 self.assertNotIn("難しい漢語が続く箇所は、ふだん使う言葉や動詞に直します", tech)
                 self.assertNotIn("漢字の割合は20%前後を目安にします。", tech)
                 self.assertNotIn("難しい漢語が続く箇所は、ふだん使う言葉や動詞に直す", tech)
                 self.assertNotIn("難しい漢語が続く箇所は、普段使う言葉や動詞に修正する", tech)
-                self.assertNotIn("和語の短い表現で書けるなら、そちらを採る", rephrase)
                 self.assertNotIn("漢字の割合は20%前後を目安にする。", tech)
                 self.assertIn("技術文書で普通に使う漢語は、和語の表現に置き換えない", tech)
                 self.assertIn("硬い漢語として扱わず、和語の表現に置き換えない", slop)

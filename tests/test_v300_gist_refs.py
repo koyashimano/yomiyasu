@@ -8,7 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "references"
 SKILL_REFS = ROOT / "skills" / "yomiyasu" / "references"
-FILES = ("calques.md", "slop-catalog.md", "rephrase-test.md", "domains/business.md")
+FILES = ("calques.md", "slop-catalog.md", "domains/business.md")
 
 
 def chapter(text, number):
@@ -47,10 +47,6 @@ class GistReferencesTest(unittest.TestCase):
         # 2通りに読める動詞の章（gist の案6）は、測った条件に届かなかったので入れていない（3.0.0 の CHANGELOG）
         self.assertNotIn("2通りに読める動詞", text)
         self.assertEqual(re.findall(r"^## (\d+)\.", text, re.M), ["1", "2", "3", "4", "5"])
-
-    def test_rephrase_test_points_to_calques(self):
-        text = (REFS / "rephrase-test.md").read_text(encoding="utf-8")
-        self.assertIn("直訳語をその分野で定着した呼び名に置き換えるのは、calques.md 4章のとおりこれに当たらない", text)
 
     def test_business_row_with_added_kango_is_gone(self):
         text = (REFS / "domains" / "business.md").read_text(encoding="utf-8")

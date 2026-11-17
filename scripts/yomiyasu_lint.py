@@ -33,7 +33,7 @@ class _TextWriter(Protocol):
     def write(self, value: str, /) -> object: ...
 
 # スクリプトとして動かしたときは、markdown_visibility を読み込む前に .pyc を書かないようにする
-# （スキルのフォルダに __pycache__ を作らない。yomiyasu_check.py と同じ）。モジュールとして読み込まれたときは、
+# （スキルのフォルダに __pycache__ を作らない）。モジュールとして読み込まれたときは、
 # 読み込む側の設定を変えない。
 if __name__ == "__main__":
     sys.dont_write_bytecode = True
@@ -79,7 +79,7 @@ try:
             _visibility_spec.loader.exec_module(_visibility_module)
         except (OSError, SyntaxError) as _load_error:
             # 隣に markdown_visibility.py がない、または壊れている。ImportError にして、スクリプトでは終了コード3にする
-            # （OSError と SyntaxError のままだと外の except で受けられず、トレースバックと終了コード1になる。diff と同じ）。
+            # （OSError と SyntaxError のままだと外の except で受けられず、トレースバックと終了コード1になる）。
             raise ImportError(
                 "{} を読めません（{}: {}）。yomiyasu_lint.py と同じバージョンの markdown_visibility.py を同じフォルダに置いてください。".format(
                     _visibility_spec.origin, type(_load_error).__name__, _load_error),
@@ -118,8 +118,8 @@ else:
     _IMPORT_ERROR = None
 
 
-# 読み込みのときに組む正規表現は、初めて使うときに組む（_lazy_compile）。1回の実行で使うのは一部だけなので、lint と
-# diff を CLI で動かすときや、check が子プロセスとして動かすときの起動の時間を延ばさないため。関数の中で組む正規表現
+# 読み込みのときに組む正規表現は、初めて使うときに組む（_lazy_compile）。1回の実行で使うのは一部だけなので、lint を
+# CLI で動かすときの起動の時間を延ばさないため。関数の中で組む正規表現
 # （利用者が書く用語リストの正規表現を含む）は、今までどおりその場で組み、書き誤りをすぐに知らせる。
 _PATTERN_ATTRIBUTES = ("search", "match", "fullmatch", "finditer", "findall", "sub", "subn", "split", "scanner",
                        "flags", "groups", "groupindex")
@@ -170,8 +170,7 @@ DOC_TYPE_SKIP_RULES = {
     # 2.2.0: 読み物、宣伝文、台詞では、見出しの短い比喩（metaphor_label）と動詞を並べる型（bare_verb_chain）を外す
     "essay": ("bare_verb_chain", "metaphor_label"),
     "formal": (),
-    # 紹介記事・宣伝文では書き手の絵文字を残す（diff の勢いの検査は絵文字が減ると候補にするので、lint の
-    # 絵文字の候補と食い違わせない。diff の詰めで測って決めた）。
+    # 紹介記事・宣伝文では書き手の絵文字を残す。
     # 評価の語を短く重ねる型（「安い。うまい。早い。」。fragment_run）も勢いとして残す（作者の判断）
     "promo": ("bare_verb_chain", "emoji_prohibited", "fragment_run", "metaphor_label"),
     "mail": ("emoji_prohibited",),
@@ -3896,13 +3895,13 @@ _V220_BUILTIN_LISTS["renyo-nouns"] = tuple((
     "たしかめ くらべ おぎない ととのえ"
 ).split()) + ("育て\tの親|の母|の父", "足し\tに", "試し\tに")
 _V220_LIST_CACHE = {}
-# 一覧のファイルがあるのに読めなかった理由（なければ None）。lint の出力には出さない（diff の _LIST_PROBLEMS と同じ扱い）
+# 一覧のファイルがあるのに読めなかった理由（なければ None）。lint の出力には出さない
 _V220_LIST_PROBLEMS = {}
 _V220_LIST_ABSENT = (FileNotFoundError, NotADirectoryError)
 
 
 def _v220_parse_list(text: str, pattern: bool = False) -> tuple:
-    """一覧のファイルの中身を読む（yomiyasu_diff.parse_list と同じ書き方）。空行と「#」で始まる行は読み飛ばす。
+    """一覧のファイルの中身を読む。空行と「#」で始まる行は読み飛ばす。
     正規表現の誤りはここでは確かめない（組むのに時間がかかるので、初めて使うときに _v220_thin_match が確かめる）。"""
     if text.startswith("\ufeff"):
         text = text[1:]
@@ -3923,7 +3922,7 @@ def _v220_parse_list(text: str, pattern: bool = False) -> tuple:
 
 
 def _v220_load_list(name: str) -> tuple[tuple, str]:
-    """一覧を読む（yomiyasu_diff._load_list と同じ読み方）。(項目のタプル, 出どころ) を返す。出どころは
+    """一覧を読む。(項目のタプル, 出どころ) を返す。出どころは
     "references/lists/<名前>.txt" か "builtin"。スクリプトの隣の ../references/lists/<名前>.txt を utf-8-sig で読む。
     ないときは何も言わずに内蔵の一覧で動き、読めないとき（UTF-8 でない、書き方の誤り、開けない）は、理由を
     _V220_LIST_PROBLEMS に残して内蔵の一覧で動く。thin-evaluation の正規表現の誤りは、初めて使うときに見つけて同じようにする。"""
@@ -6063,10 +6062,6 @@ _FAIL_CONDITIONS = {
     "warn": ("--fail-on=warn の条件（warn か error の候補が1件以上）", ("warn", "error")),
     "error": ("--fail-on=error の条件（error の候補が1件以上）", ("error",)),
 }
-_MEANING_RISK_MESSAGE = (
-    "--fail-on=meaning-risk は lint では使えません。lint は1つの文章だけを見るので、意味の変化は判定できません。"
-    "原文と比べる yomiyasu_diff.py か yomiyasu_check.py に付けてください。"
-)
 _EXIT_CODES = """終了コード:
   0  検査を最後まで実行し、--strict と --fail-on の条件に当たらなかった（候補の有無によらない）。-h と --version も0
   1  --strict か --fail-on の条件に当たった
@@ -6174,7 +6169,7 @@ def _build_parser() -> argparse.ArgumentParser:
         epilog=_doc_type_table() + "\n\n" + _PENALTY_HELP + "\n" + _WORDS_EPILOG + "\n" + _EXIT_CODES,
         formatter_class=_HelpFormatter,
         add_help=False,
-        # 省略形（--js など）は受けない。lint、diff、check の3本でそろえる
+        # 省略形（--js など）は受けない
         allow_abbrev=False,
     )
     arguments = parser.add_argument_group("引数")
@@ -6191,9 +6186,7 @@ def _build_parser() -> argparse.ArgumentParser:
     options.add_argument("--fail-on", action=_ConditionAction, dest="conditions", metavar="{warn,error}",
                          help="指定した中身の候補があれば、終了コード1で終わります。"
                               "warn: warn か error の候補。error: error の候補（太字が表示されない書き方）。"
-                              "何度でも、カンマ区切りでも指定できます。点数は条件に使えません。"
-                              "meaning-risk は2つの文章を比べないと判定できないので、"
-                              "yomiyasu_diff.py か yomiyasu_check.py に付けてください。")
+                              "何度でも、カンマ区切りでも指定できます。点数は条件に使えません。")
     options.add_argument("--doc-type", metavar="種類",
                          help="文書の種類。指定すると、その種類で普通な書き方を候補にする規則（下の一覧）の候補を外し、"
                               "外した件数を出します。外した候補の中身は、指定せずに実行すると見られます。"
@@ -6232,17 +6225,14 @@ def _error(message: str) -> None:
 
 
 def _conditions(raw: Sequence[tuple[str, str]]) -> tuple[list[str] | None, str | None]:
-    """--strict と --fail-on の並びを、条件の名前の並びにする。使えない値があれば誤りの文を返す。
-
-    meaning-risk は、ほかの値と混ぜても、ほかの誤りより先に断る。
-    """
+    """--strict と --fail-on の並びを、条件の名前の並びにする。使えない値があれば誤りの文を返す。"""
     names = []
     unknown = []
     for kind, value in raw:
         if kind == "strict":
             names.append("strict")
             continue
-        # 大文字と小文字、「_」と「-」は区別しない（WARN、meaning_risk も受ける）。
+        # 大文字と小文字、「_」と「-」は区別しない（WARN も受ける）。
         pieces = [piece.strip().lower().replace("_", "-") for piece in value.split(",") if piece.strip()]
         if not pieces:
             # 空、空白だけ、カンマだけの値は、目に見えないので「（空）」と書く。
@@ -6250,8 +6240,6 @@ def _conditions(raw: Sequence[tuple[str, str]]) -> tuple[list[str] | None, str |
         for piece in pieces:
             if piece in ("warn", "error"):
                 names.append(piece)
-            elif piece == "meaning-risk":
-                return None, _MEANING_RISK_MESSAGE
             else:
                 unknown.append(piece)
     if unknown:

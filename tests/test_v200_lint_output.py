@@ -106,10 +106,8 @@ NOT_UTF8_FILE = "Error opening file {}: UTF-8 として読めません\n"
 NOT_UTF8_STDIN = "Error reading stdin: UTF-8 として読めません\n"
 STDIN_ERROR = re.compile(r"^Error reading stdin: 標準入力を読めません（.+）\n$")
 
-MEANING_RISK_MESSAGE = (
-    "--fail-on=meaning-risk は lint では使えません。lint は1つの文章だけを見るので、意味の変化は判定できません。"
-    "原文と比べる yomiyasu_diff.py か yomiyasu_check.py に付けてください。"
-)
+# meaning-risk は、ほかの知らない値と同じ L5 の文で断る
+MEANING_RISK_MESSAGE = UNKNOWN_FAIL_ON.format("meaning-risk")
 
 # 先頭の設定（frontmatter）を含む入力。BOM があると v1.1.2 では先頭の設定として読まれない。
 FRONTMATTER_TEXT = "---\ntitle: 設定の手順\ntags: 例\n---\n本記事では、設定を紹介します。\n"
@@ -136,8 +134,7 @@ HELP_TEXTS = {
                  "info の候補と点数は使いません（--fail-on=warn と同じです）。"),
     "--fail-on": ("指定した中身の候補があれば、終了コード1で終わります。warn: warn か error の候補。"
                   "error: error の候補（太字が表示されない書き方）。何度でも、カンマ区切りでも指定できます。"
-                  "点数は条件に使えません。meaning-risk は2つの文章を比べないと判定できないので、"
-                  "yomiyasu_diff.py か yomiyasu_check.py に付けてください。"),
+                  "点数は条件に使えません。"),
     "--json": ("結果をJSON（形式2）で出します。日本語は \\uXXXX の形で出します。"
                "rule_penalty_score は、候補の多さを地の文の長さで割った目安です（下の式）。合否には使わないでください。"),
     "--version": "バージョンを表示して終わります。",
@@ -242,7 +239,7 @@ class LintCase(unittest.TestCase):
         folder = tempfile.TemporaryDirectory(prefix="yomiyasu-v200-lint-")
         self.addCleanup(folder.cleanup)
         self.root = Path(folder.name)
-        # 3.0.0: lint、diff、check は作業フォルダの外のファイルを読まないので、ファイルを置く一時フォルダで動かす（子のプロセスも）
+        # 3.0.0: lint は作業フォルダの外のファイルを読まないので、ファイルを置く一時フォルダで動かす（子のプロセスも）
         self.addCleanup(os.chdir, os.getcwd())
         os.chdir(folder.name)
 
@@ -320,7 +317,7 @@ class TestHumanReport(LintCase):
                 result = yomiyasu_lint.lint_text(text)
                 self.assertEqual(yomiyasu_lint.render_report(result), "\n".join(lines))
                 self.assertEqual(yomiyasu_lint.render_findings(result), "\n".join(lines[4:]))
-                # JSON（形式2）を読み直した辞書でも同じ出力になる（check が記録から作り直すときのため）。
+                # JSON（形式2）を読み直した辞書でも同じ出力になる。
                 reloaded = json.loads(json.dumps(result, ensure_ascii=True))
                 self.assertEqual(yomiyasu_lint.render_report(reloaded), "\n".join(lines))
         self.assertEqual(yomiyasu_lint.render_findings(yomiyasu_lint.lint_text(EXAMPLE1_INPUT)), "")
@@ -538,20 +535,18 @@ class TestStrictAndFailOn(LintCase):
                 self.assertEqual(process.stdout, "")
                 self.assertEqual(process.stderr, UNKNOWN_FAIL_ON.format("（空）") + "\n")
 
-    def test_fail_on_meaning_risk_is_rejected_with_guidance(self):
-        """--fail-on=meaning-risk は終了コード2、標準出力は空、標準エラーで diff か check を案内する。"""
+    def test_fail_on_meaning_risk_is_an_unknown_value(self):
+        """--fail-on=meaning-risk は、ほかの知らない値と同じく終了コード2、標準出力は空、標準エラーは L5 の文。"""
         for args in (["--fail-on=meaning-risk"], ["--fail-on", "meaning-risk"]):
             with self.subTest(args=args):
                 process = run_lint(args, stdin=WARN_ONLY)
                 self.assertEqual(process.returncode, 2, process.stdout + process.stderr)
                 self.assertEqual(process.stdout, "")
-                self.assertIn("yomiyasu_diff.py", process.stderr)
-                self.assertIn("yomiyasu_check.py", process.stderr)
                 self.assertEqual(process.stderr, MEANING_RISK_MESSAGE + "\n")
 
     def test_fail_on_meaning_risk_mixed_with_other_values_exits_2(self):
         """meaning-risk をカンマ区切りや繰り返しでほかの値と混ぜても、黙って捨てずに終了コード2、標準出力は空。
-        標準エラーは 1.4 の文をそのまま出す（10.1 L14）。"""
+        標準エラーは L5 の文。"""
         # warn だけの文を渡すので、meaning-risk を捨てて warn だけで動くと終了コード1になり、区別できる。
         for args in (["--fail-on=warn,meaning-risk"], ["--fail-on=warn", "--fail-on=meaning-risk"],
                      ["--strict", "--fail-on=meaning-risk,error"]):
@@ -560,8 +555,6 @@ class TestStrictAndFailOn(LintCase):
                 self.assertEqual(process.returncode, 2, process.stdout + process.stderr)
                 self.assertEqual(process.stdout, "")
                 self.assertNotIn("unrecognized arguments", process.stderr)
-                self.assertIn("yomiyasu_diff.py", process.stderr)
-                self.assertIn("yomiyasu_check.py", process.stderr)
                 self.assertEqual(process.stderr, MEANING_RISK_MESSAGE + "\n")
 
 
@@ -677,11 +670,11 @@ class TestErrors(LintCase):
 
     def test_stderr_is_utf8_in_a_cp932_environment(self):
         """標準入出力が cp932 の環境でも、標準エラーは UTF-8 で書く（0.4。errors="backslashreplace"）。
-        L5、L11、1.4 の文と、argparse の使い方の誤り。"""
+        L5、L11 の文と、argparse の使い方の誤り。"""
         missing = self.root / "なし🚀.md"
         cases = (
             ("L5", ["--fail-on=なし🚀"], b"", UNKNOWN_FAIL_ON.format("なし🚀") + "\n"),
-            ("L14", ["--fail-on=meaning-risk"], b"", MEANING_RISK_MESSAGE + "\n"),
+            ("L5-meaning-risk", ["--fail-on=meaning-risk"], b"", MEANING_RISK_MESSAGE + "\n"),
             ("L11-stdin", [], "設定を変更します。\n".encode("cp932"), NOT_UTF8_STDIN),
         )
         for name, args, stdin, expected in cases:
@@ -969,7 +962,7 @@ class TestMainDecisions(LintCase):
                 self.assertEqual(process.stderr.rstrip("\n"), MEANING_RISK_MESSAGE)
 
     def test_abbreviations_are_not_accepted(self):
-        """10.7: argparse の省略形を受けない（allow_abbrev=False。lint、diff、check の3本でそろえる）。"""
+        """10.7: argparse の省略形を受けない（allow_abbrev=False）。"""
         for args in (["--js"], ["--stri"], ["--fail", "warn"], ["--vers"]):
             with self.subTest(args=args):
                 process = run_lint(args, stdin="x\n")
@@ -980,7 +973,7 @@ class TestMainDecisions(LintCase):
                                  "引数の誤りです。yomiyasu_lint.py -h で使い方を確かめてください。")
 
     def test_missing_or_broken_markdown_visibility_is_an_internal_error(self):
-        """10.7: 隣に markdown_visibility.py がない、または読めない（構文の誤り）ときも、diff と同じく、スクリプトとしては
+        """10.7: 隣に markdown_visibility.py がない、または読めない（構文の誤り）ときも、スクリプトとしては
         終了コード3（1は --strict と --fail-on に当たったときだけ）。モジュールとして読むときは ImportError。"""
         sample = self.write("warn.md", WARN_ONLY)
         for case, content in (("missing", None), ("syntax-error", "def broken(:\n")):

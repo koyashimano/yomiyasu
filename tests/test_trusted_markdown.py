@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
 import yomiyasu_lint
-import yomiyasu_diff
 
 
 class TrustedMarkdownTests(unittest.TestCase):
@@ -109,7 +108,7 @@ class TrustedMarkdownTests(unittest.TestCase):
         self.assertEqual(yomiyasu_lint.lint_text(badge + '本文です。')['metrics']['total_lines'], 1)
         self.assertEqual(yomiyasu_lint.lint_text(badge + '[]')['metrics']['total_lines'], 1)
 
-    def test_nested_bold_code_and_destinations_match_in_lint_and_diff(self):
+    def test_nested_bold_code_and_destinations_in_lint(self):
         cases = (
             '**foo,**bar**baz**',
             '**foo「**bar**baz**',
@@ -120,12 +119,9 @@ class TrustedMarkdownTests(unittest.TestCase):
         for text in cases:
             with self.subTest(text=text):
                 self.assertEqual(yomiyasu_lint.bold_problems(text), [])
-                self.assertEqual(yomiyasu_diff.bold_problems(text), [])
         for text in ('foo\\\n**「x」**bar', 'a***「x」***b', r'\`a**「x」**b\`'):
             with self.subTest(text=text):
-                actual = yomiyasu_lint.bold_problems(text)
-                self.assertTrue(actual)
-                self.assertEqual(actual, yomiyasu_diff.bold_problems(text))
+                self.assertTrue(yomiyasu_lint.bold_problems(text))
         self.assertEqual(yomiyasu_lint.bold_problems('a***「x」***b')[0]['suggest'], '')
 
     def test_main_reuses_original_analysis_and_preserves_custom_patterns(self):

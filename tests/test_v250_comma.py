@@ -1,23 +1,17 @@
 """v2.5.0: 読点の多すぎる文（8章）。
 
-8b: diff の「読点が増えた」の候補（JSON の comma_increase）。最終稿の地の文の読点が原文より3個以上多く、1文あたりの読点が
-0.3個以上増えたときだけ出す。meaning_risk_count、candidate_count、状態、--fail-on には入れない。
 8c: lint の pause_comma（--doc-type を指定したときだけ）から、外すと掛かり先が変わる形（店長は、慌てて逃げた客を追いかけた）を
 外し、6字以内の短い目的語の「を、」を足した（並べ、長い目的語、節の目的語、カギ括弧の目的語、引用、essay は外す）。
 文は指示書の再現の表の12文と、自作の合成の文。
 """
 from pathlib import Path
-import json
 import re
-import subprocess
 import sys
-import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
-import yomiyasu_diff  # noqa: E402
 import yomiyasu_lint  # noqa: E402
 
 # 指示書の再現の表の12文と、article のときの pause_comma の当たった言い方（なければ空）。種類なしではどれも候補なし
@@ -171,101 +165,6 @@ class ShortObjectTest(unittest.TestCase):
                     found = [f for f in yomiyasu_lint.lint_text(text, doc_type=doc_type)["findings"]
                              if f["rule"] == "pause_comma"]
                     self.assertFalse([f for f in found if f["message"].startswith("短い主語や主題、目的語")])
-
-
-ORIGINAL = ("この機能は、ユーザーが設定を変更したときに動きます。システムは受け取ったデータを順番に処理します。"
-            "ログは一定期間保存され、その後自動的に削除されます。\n\nなお、この設定は管理者だけが変更できます。"
-            "今回は新しい検索機能も追加しました。\n")
-REWRITES = {
-    # 読点を8個足しただけ（候補が出る）
-    "plus8": ("この機能は、ユーザーが、設定を、変更したときに、動きます。システムは、受け取ったデータを、順番に処理します。"
-              "ログは、一定期間、保存され、その後、自動的に削除されます。\n\nなお、この設定は管理者だけが変更できます。"
-              "今回は新しい検索機能も追加しました。\n"),
-    # 読点を変えない推敲、減らした推敲、2個だけ足した推敲（候補が出ない）
-    "same": ("この機能は、ユーザーが設定を変えたときに動きます。システムは受け取ったデータを順番に処理します。"
-             "ログは一定期間保存され、その後自動的に削除されます。\n\nなお、この設定は管理者だけが変更できます。"
-             "今回は新しい検索機能も追加しました。\n"),
-    "fewer": ("この機能はユーザーが設定を変更したときに動きます。システムは受け取ったデータを順番に処理します。"
-              "ログは一定期間保存され、その後自動的に削除されます。\n\nこの設定は管理者だけが変更できます。"
-              "今回は新しい検索機能も追加しました。\n"),
-    "plus2": ("この機能は、ユーザーが、設定を変更したときに動きます。システムは、受け取ったデータを順番に処理します。"
-              "ログは一定期間保存され、その後自動的に削除されます。\n\nなお、この設定は管理者だけが変更できます。"
-              "今回は新しい検索機能も追加しました。\n"),
-}
-
-
-class CommaIncreaseTest(unittest.TestCase):
-    def test_only_the_plus8_rewrite_gets_the_candidate(self):
-        for name, final in REWRITES.items():
-            with self.subTest(name=name):
-                result = yomiyasu_diff.diff(ORIGINAL, final)
-                self.assertEqual(result["meaning_risk_count"], 0)
-                self.assertEqual(result["fail_on_meaning_risk_count"], 0)
-                if name == "plus8":
-                    item = result["comma_increase"]
-                    self.assertEqual((item["old_count"], item["new_count"]), (3, 11))
-                    self.assertEqual((item["old_sentences"], item["new_sentences"]), (5, 5))
-                    self.assertEqual([(s["old_count"], s["new_count"]) for s in item["sentences"]], [(1, 4), (0, 2), (1, 4)])
-                    self.assertIn("■ 読点が増えた（3個 → 11個。1文あたり 0.60個 → 2.20個。", yomiyasu_diff.report(result))
-                else:
-                    self.assertIsNone(result["comma_increase"])
-                    self.assertNotIn("■ 読点が増えた", yomiyasu_diff.report(result))
-
-    def test_not_counted_in_candidates_status_or_exit_code(self):
-        result = yomiyasu_diff.diff(ORIGINAL, REWRITES["plus8"])
-        without = dict(result, comma_increase=None)
-        self.assertEqual(result["candidate_count"], without["candidate_count"])
-        self.assertEqual(yomiyasu_diff._status_line(result), yomiyasu_diff._status_line(without))
-        with tempfile.TemporaryDirectory() as folder:
-            old, new = Path(folder) / "a.md", Path(folder) / "b.md"
-            old.write_bytes((ORIGINAL).encode("utf-8"))
-            new.write_bytes((REWRITES["plus8"]).encode("utf-8"))
-            process = subprocess.run([sys.executable, "-B", str(SCRIPTS / "yomiyasu_diff.py"), "--fail-on", "meaning-risk",
-                                      str(old), str(new)], capture_output=True, text=True, encoding="utf-8", cwd=folder)
-            self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
-            self.assertIn("■ 読点が増えた", process.stdout)
-            check = subprocess.run([sys.executable, "-B", str(SCRIPTS / "yomiyasu_check.py"), "run", "--no-record",
-                                    "--source", str(old), "--final", str(new)], capture_output=True, text=True, encoding="utf-8",
-                                   cwd=folder)
-            self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
-            self.assertIn("読点の増加: 3 → 11個", check.stdout.split("\n")[3])
-            self.assertIn("■ 読点が増えた", check.stdout)
-
-    def test_exact_boundary_counts(self):
-        """1文あたり0.3個ちょうどの増え方も出す（分数で比べる）。"""
-        base = ["朝は、駅まで歩きます。", "昼は、近くの店で食べます。", "午後は、会議があります。", "夕方は、資料を読みます。",
-                "夜は家で本を読みます。", "週末は公園に行きます。", "雨の日は家にいます。", "冬は早く寝ます。",
-                "夏は川で泳ぎます。", "秋は山に登ります。"]
-        old = "".join(base) + "\n"
-        new = "".join(base[:4] + ["夜は、家で本を読みます。", "週末は、公園に行きます。", "雨の日は、家にいます。"] + base[7:]) + "\n"
-        item = yomiyasu_diff.diff(old, new)["comma_increase"]
-        self.assertEqual((item["old_count"], item["new_count"], item["old_sentences"], item["new_sentences"]), (4, 7, 10, 10))
-
-    def test_quotes_with_periods_are_not_counted(self):
-        old = "試合のあと、監督は記者の質問に答えた。「選手はよく走った。後半は足が止まった。次の試合までに立て直したい」と話した。\n"
-        new = "試合のあと、監督は記者の質問に答えた。「選手は、よく走った。後半は、足が、止まった。次の試合までに、立て直したい」と話した。\n"
-        self.assertIsNone(yomiyasu_diff.diff(old, new)["comma_increase"])
-        self.assertIsNone(yomiyasu_diff.diff("設定を変えます。\n", "設定を変えます。`a、b、c、d` を見ます。\n")["comma_increase"])
-
-    def test_joined_sentences_compare_with_both_originals(self):
-        """2文をつないだ文は、つないだ元の2文の読点と比べる（つなぎの読点1個だけの増え方は文に挙げない）。"""
-        old = "検索は、前より速くなった。索引は、夜に作り直す。ログは、30日で消える。通知は、まとめて届く。画面は、来月に直す。設定は、管理者が変える。\n"
-        new = "検索は、前より速くなり、索引は、夜に作り直す。ログは、30日で消え、通知は、まとめて届く。画面は、来月に直し、設定は、管理者が変える。\n"
-        item = yomiyasu_diff.diff(old, new)["comma_increase"]
-        self.assertEqual((item["old_count"], item["new_count"]), (6, 9))
-        self.assertEqual(item["sentences"], [])
-
-    def test_same_text_has_no_candidate(self):
-        self.assertIsNone(yomiyasu_diff.diff(ORIGINAL, ORIGINAL)["comma_increase"])
-
-    def test_code_tables_quotes_and_urls_are_not_counted(self):
-        old = "設定を変えます。\n"
-        extra = ("設定を変えます。\n\n```\na、b、c、d、e\n```\n\n| a、b、c、d |\n|---|\n| e、f、g、h |\n\n"
-                 "> 引用、引用、引用、引用\n\n彼は「あ、い、う、え」と言った。\n")
-        self.assertIsNone(yomiyasu_diff.diff(old, extra)["comma_increase"])
-
-    def test_json_key_is_last(self):
-        self.assertEqual(list(yomiyasu_diff.diff(ORIGINAL, REWRITES["plus8"]))[-2:], ["heading_shapes", "comma_increase"])
 
 
 if __name__ == "__main__":

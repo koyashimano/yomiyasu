@@ -1,4 +1,4 @@
-"""v2.2.0: プロジェクトの用語リスト（.yomiyasu-words/ の allow.txt と flag.txt）を、lint、diff、check、フックで確かめる。
+"""v2.2.0: プロジェクトの用語リスト（.yomiyasu-words/ の allow.txt と flag.txt）を、lint で確かめる。
 
 文はすべて合成の文。一覧のフォルダは一時フォルダの中にだけ作る（リポジトリの中には置かない。試験の多くはリポジトリの
 中で動き、一覧があると context の固定が崩れる）。
@@ -8,7 +8,6 @@ from unittest import mock
 import hashlib
 import json
 import os
-import shlex
 import subprocess
 import sys
 import tempfile
@@ -19,15 +18,9 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import markdown_visibility  # noqa: E402
-import yomiyasu_check  # noqa: E402
-import yomiyasu_diff  # noqa: E402
 import yomiyasu_lint  # noqa: E402
-from test_v200_check_start import ManagedCase  # noqa: E402
 
 LINT = SCRIPTS / "yomiyasu_lint.py"
-DIFF = SCRIPTS / "yomiyasu_diff.py"
-CHECK = SCRIPTS / "yomiyasu_check.py"
-HOOK = SCRIPTS / "yomiyasu_hook.py"
 
 WORD_KEYS = ["path", "allow_lines", "flag_lines", "allow_sha256", "flag_sha256"]
 ALLOW_RULES = ["ai_phrase", "calque", "katakana_term", "metaphor_label", "metaphor_verb", "project_term", "renyo_noun",
@@ -59,9 +52,7 @@ class FolderCase(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(os.path.realpath(self.tmp.name))
-        self.env = dict(os.environ, HOME=str(self.root), YOMIYASU_STATE_DIR=str(self.root / ".yomiyasu"))
-        for name in ("YOMIYASU_SESSION", "CODEX_THREAD_ID", "CLAUDE_PROJECT_DIR"):
-            self.env.pop(name, None)
+        self.env = dict(os.environ, HOME=str(self.root))
         # 一時フォルダの上に .git がないこと（git の外の場合の前提）
         current = self.root
         while current != current.parent:
@@ -455,318 +446,6 @@ class LintCliTest(FolderCase):
         usage = yomiyasu_lint._build_parser().format_usage()
         self.assertIn("[--words フォルダ]", usage)
         self.assertIn("[--no-words]", usage)
-
-
-class DiffTest(FolderCase):
-    def test_context_words_and_human_line(self):
-        folder = self.words(allow="入口\n", flag="手順書\n")
-        a = write(self.root / "a.md", PLAIN_LINE + "\n")
-        b = write(self.root / "b.md", "担当者が手順書を読み、作業の記録を残しました。\n")
-        process = run([DIFF, "--json", a, b], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr)
-        result = json.loads(process.stdout)
-        self.assertEqual(list(result["context"]), ["doc_type", "reader", "words"])
-        self.assertEqual(list(result["context"]["words"]), WORD_KEYS)
-        self.assertEqual(result["context"]["words"]["path"], str(folder))
-        plain = run([DIFF, "--json", "--no-words", a, b], self.root, self.env)
-        self.assertEqual(json.loads(plain.stdout)["context"], {"doc_type": None, "reader": None})
-        # 一覧は context だけを変える
-        without = dict(json.loads(plain.stdout))
-        with_words = dict(result)
-        without.pop("context")
-        with_words.pop("context")
-        self.assertEqual(without, with_words)
-        lines = run([DIFF, a, b], self.root, self.env).stdout.splitlines()
-        self.assertEqual(lines[3], "用語リスト: {}（allow 1語、flag 1語）。".format(folder))
-        lines = run([DIFF, "--reader", "general", a, b], self.root, self.env).stdout.splitlines()
-        self.assertTrue(lines[3].startswith("文書の種類: 指定なし、読者: 専門知識のない人（general）。"), lines[3])
-        self.assertEqual(lines[4], "用語リスト: {}（allow 1語、flag 1語）。".format(folder))
-        self.assertNotIn("用語リスト", run([DIFF, "--no-words", a, b], self.root, self.env).stdout)
-
-    def test_errors(self):
-        a = write(self.root / "a.md", PLAIN_LINE + "\n")
-        folder = self.words(flag=b"\xff")
-        process = run([DIFF, a, a], self.root, self.env)
-        self.assertEqual((process.returncode, process.stdout, process.stderr),
-                         (2, "", "Error opening file {}: UTF-8 として読めません（1行目）\n".format(folder / "flag.txt")))
-        process = run([DIFF, "--words", "nowhere", a, a], self.root, self.env)
-        self.assertEqual((process.returncode, process.stderr),
-                         (2, "Error opening folder nowhere: --words のフォルダがありません\n"))
-        process = run([DIFF, "--words", str(folder), "--no-words", a, a], self.root, self.env)
-        self.assertEqual(process.returncode, 2)
-        self.assertIn("yomiyasu_diff.py: error: --words と --no-words は一緒に使えません\n", process.stderr)
-        for option in (["--words", str(folder)], ["--no-words"]):
-            with self.subTest(option=option):
-                process = run([DIFF, "--endings"] + option + [a], self.root, self.env)
-                self.assertEqual((process.returncode, process.stdout), (2, ""))
-                self.assertIn("--endings は --words と --no-words に対応していません", process.stderr)
-        # --endings は一覧を探さない（読めない一覧があっても動く）
-        self.assertEqual(run([DIFF, "--endings", a], self.root, self.env).returncode, 0)
-
-    def test_function_and_help(self):
-        words = {"path": "/x", "allow": (), "flag": ("語",), "allow_lines": 0, "flag_lines": 1, "allow_sha256": None,
-                 "flag_sha256": "0" * 64}
-        result = yomiyasu_diff.diff("a。\n", "b。\n", words=words)
-        self.assertEqual(result["context"]["words"],
-                         {"path": "/x", "allow_lines": 0, "flag_lines": 1, "allow_sha256": None, "flag_sha256": "0" * 64})
-        help_text = yomiyasu_diff._build_parser().format_help()
-        self.assertIn("[--words フォルダ | --no-words]", help_text)
-        self.assertIn("用語リストを読めない", yomiyasu_diff._EXIT_CODES)
-
-
-class CheckTest(FolderCase):
-    def setUp(self):
-        super().setUp()
-        self.state = self.root / ".yomiyasu"
-        self.a = write(self.root / "a.md", METAPHOR_LINE + "\n")
-        self.b = write(self.root / "b.md", "このままでは、夜間の処理が静かに壊れます。手順書を読みます。\n")
-
-    def check(self, *args, cwd=None):
-        return run([CHECK] + list(args), cwd or self.root, self.env)
-
-    def run_json(self, *args, cwd=None):
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--json", *args, cwd=cwd)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        return json.loads(process.stdout)
-
-    def record(self, result):
-        return json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
-
-    def test_record_options_context_and_replay(self):
-        folder = self.words(allow="静かに壊れる\n", flag="手順書\n")
-        result = self.run_json()
-        expected = markdown_visibility.words_context(markdown_visibility.load_words(str(folder)))
-        self.assertEqual(result["context"], {"doc_type": None, "reader": None, "words": expected})
-        self.assertEqual(list(result["context"]["words"]), WORD_KEYS)
-        self.assertEqual(result["lint"]["context"]["words"]["allow_removed"]["metaphor_verb"], 1)
-        self.assertEqual([f["rule"] for f in result["lint"]["findings"]], ["project_term"])
-        self.assertEqual(result["diff"]["context"]["words"], expected)
-        record = self.record(result)
-        self.assertEqual(list(record["options"]),
-                         ["stance", "fail_on", "timeout", "doc_type", "reader", "fact_gaps", "words"])
-        self.assertEqual(record["options"]["words"], expected)
-        self.assertEqual(list(record["options"]["words"]), WORD_KEYS)
-        # verify と --replay は記録の場所を使う（作業ディレクトリを変えても、そこに別の一覧があっても同じ）
-        elsewhere = self.root / "elsewhere"
-        self.words(elsewhere / ".yomiyasu-words", allow="入口\n")
-        for cwd in (self.root, elsewhere):
-            with self.subTest(cwd=cwd):
-                if cwd == self.root:
-                    process = self.check("verify", "--final", str(self.b), "--replay", cwd=cwd)
-                else:
-                    # 3.0.0: check は作業フォルダの外のファイルを読まないので、別のフォルダからは最終稿を標準入力で渡す
-                    with open(str(self.b), "rb") as handle:
-                        process = run([CHECK, "verify", "--final", "-", "--replay"], cwd, self.env, stdin=handle)
-                self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
-                self.assertIn("replay=ok", process.stdout)
-        # 記録のあとで一覧が変われば、作り直したレポートが合わない
-        write(folder / "allow.txt", "入口\n")
-        process = self.check("verify", "--final", str(self.b), "--replay")
-        self.assertEqual(process.returncode, 1, process.stdout)
-        self.assertIn("not_reproducible", process.stdout)
-
-    def test_record_without_a_list_replays_with_no_words(self):
-        result = self.run_json()
-        self.assertEqual(result["context"], {"doc_type": None, "reader": None})
-        record = self.record(result)
-        self.assertNotIn("words", record["options"])
-        self.assertNotIn("words", result["lint"]["context"])
-        # あとから一覧を置いても、一覧なしの記録はそのまま作り直せる
-        self.words(allow="静かに壊れる\n", flag="手順書\n")
-        process = self.check("verify", "--final", str(self.b), "--replay")
-        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
-        self.assertIn("replay=ok", process.stdout)
-
-    def test_human_output_line(self):
-        folder = self.words(flag="手順書\n")
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-record")
-        self.assertEqual(process.returncode, 0, process.stderr)
-        lines = process.stdout.splitlines()
-        index = [n for n, line in enumerate(lines) if line.startswith("記録: ")][0]
-        self.assertEqual(lines[index + 1], "用語リスト: {}（allow 0語、flag 1語）。".format(folder))
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-record", "--no-words")
-        self.assertNotIn("用語リスト", process.stdout)
-
-    def test_explicit_folder_and_no_words(self):
-        self.words(allow="静かに壊れる\n")
-        other = self.words(self.root / "lists", flag="手順書\n")
-        result = self.run_json("--no-record", "--words", "lists")
-        self.assertEqual(result["context"]["words"]["path"], str(other))
-        result = self.run_json("--no-record", "--no-words")
-        self.assertEqual(result["context"], {"doc_type": None, "reader": None})
-        self.assertNotIn("words", result["lint"]["context"])
-        self.assertNotIn("words", result["diff"]["context"])
-
-    def test_stdin_uses_the_list(self):
-        self.words(flag="手順書\n")
-        data = ("<<<yomiyasu:original>>>\n" + METAPHOR_LINE + "\n<<<yomiyasu:final>>>\n手順書を読みます。\n").encode("utf-8")
-        process = subprocess.run([sys.executable, "-B", str(CHECK), "run", "--stdin", "--json", "--no-record"],
-                                 cwd=str(self.root), env=self.env, input=data, capture_output=True, timeout=60)
-        self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertIn("words", json.loads(process.stdout.decode("utf-8"))["context"])
-
-    def test_errors_write_nothing(self):
-        folder = self.words(allow=b"\xff")
-        cases = (
-            (["run", "--source", str(self.a), "--final", str(self.b)],
-             "Error opening file {}: UTF-8 として読めません（1行目）\n".format(folder / "allow.txt")),
-            (["run", "--source", str(self.a), "--final", str(self.b), "--words", "missing"],
-             "Error opening folder missing: --words のフォルダがありません\n"),
-            (["start", "--source", str(self.a)],
-             "Error opening file {}: UTF-8 として読めません（1行目）\n".format(folder / "allow.txt")),
-            (["start", "--source", str(self.a), "--words", "missing"],
-             "Error opening folder missing: --words のフォルダがありません\n"),
-        )
-        for args, error in cases:
-            with self.subTest(args=args):
-                process = self.check(*args)
-                self.assertEqual((process.returncode, process.stdout, process.stderr), (2, "", error))
-                self.assertFalse(self.state.exists())
-        for command in (["run", "--source", str(self.a), "--final", str(self.b)], ["start", "--source", str(self.a)]):
-            with self.subTest(command=command[0]):
-                process = self.check(*(command + ["--words", str(folder), "--no-words"]))
-                self.assertEqual((process.returncode, process.stdout), (2, ""))
-                self.assertIn("yomiyasu_check.py {}: error: --words と --no-words は一緒に使えません\n".format(command[0]),
-                              process.stderr)
-                self.assertFalse(self.state.exists())
-        write(folder / "allow.txt", "語\n" * 10001)
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b))
-        self.assertEqual(process.returncode, 2)
-        self.assertIn("10001行目", process.stderr)
-        self.assertFalse(self.state.exists())
-        # --no-words なら読めない一覧も読まない
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-words", "--no-record")
-        self.assertEqual(process.returncode, 0, process.stderr)
-
-    def test_start_accepts_the_options(self):
-        folder = self.words(flag="手順書\n")
-        process = self.check("start", "--source", str(self.a), "--json")
-        self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(json.loads(process.stdout)["words"]["path"], str(folder))
-        process = self.check("start", "--source", str(self.a))
-        self.assertIn("用語リスト: {}（allow 0語、flag 1語）。".format(folder), process.stdout)
-        process = self.check("start", "--source", str(self.a), "--json", "--no-words")
-        self.assertNotIn("words", json.loads(process.stdout))
-
-    def test_child_words_must_match(self):
-        words = markdown_visibility.words_context(markdown_visibility.load_words(str(self.words(flag="手順書\n"))))
-        parsed = {"format": "yomiyasu-diff", "context": {"doc_type": None, "reader": None, "words": dict(words)}}
-        self.assertIsNone(yomiyasu_check._context_problem(parsed, None, None, words))
-        self.assertIsNotNone(yomiyasu_check._context_problem(parsed, None, None, None))
-        changed = dict(words, flag_sha256="0" * 64)
-        self.assertIsNotNone(yomiyasu_check._context_problem(parsed, None, None, changed))
-        parsed = {"format": "yomiyasu-diff", "context": {"doc_type": None, "reader": None}}
-        self.assertIsNone(yomiyasu_check._context_problem(parsed, None, None, None))
-        self.assertIsNotNone(yomiyasu_check._context_problem(parsed, None, None, words))
-        self.assertEqual(yomiyasu_check._words_arguments(None), ["--no-words"])
-        self.assertEqual(yomiyasu_check._words_arguments(words), ["--words", words["path"]])
-
-    def test_record_shape(self) -> None:
-        words = {"path": str(self.root / "words"), "allow_lines": 0, "flag_lines": 1, "allow_sha256": None, "flag_sha256": "a" * 64}
-        self.assertTrue(yomiyasu_check._words_shape(words))
-        for wrong in (dict(words, path="x"), dict(words, flag_sha256=None), dict(words, allow_lines=-1),
-                      dict(words, flag_sha256="A" * 64), {key: words[key] for key in reversed(WORD_KEYS)},
-                      dict(words, allow_removed={}), None):
-            self.assertFalse(yomiyasu_check._words_shape(wrong), wrong)
-
-    def test_help_and_usage(self):
-        for command in ("run", "start"):
-            with self.subTest(command=command):
-                process = self.check(command, "--help")
-                self.assertIn("[--words フォルダ | --no-words]", process.stdout)
-                self.assertIn("--no-words", process.stdout)
-        self.assertIn("用語リストを読めない", yomiyasu_check._EXIT_CODES)
-        process = self.check("verify", "--final", str(self.b), "--words", "x")
-        self.assertEqual(process.returncode, 2)
-
-
-class HookTest(ManagedCase):
-    """フックは lint を動かさない。--words と --no-words を受け、案内する run のコマンドに付ける。終了コードはいつも0。"""
-
-    def hook(self, *options, event="Stop", **data):
-        payload = dict(hook_event_name=event, session_id="A", cwd=str(self.root))
-        payload.update(data)
-        result = subprocess.run([sys.executable, "-B", str(HOOK), "--host", "claude-code"] + list(options),
-                                input=json.dumps(payload).encode("utf-8"), cwd=str(self.root), env=self.env,
-                                capture_output=True, timeout=25)
-        self.assertEqual((result.returncode, result.stderr), (0, b""))
-        return result.stdout.decode("utf-8")
-
-    def registered(self):
-        return self.start("--session", "A", "--host", "claude-code", "--final", str(self.final),
-                          "--max-stop-blocks", "5")["run_id"]
-
-    def log(self):
-        path = self.state / "hook-errors.log"
-        return path.read_text(encoding="utf-8") if path.exists() else ""
-
-    def test_options_are_parsed(self):
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("_hook_for_test", str(HOOK))
-        hook = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(hook)
-        self.assertEqual(hook._options(["--host", "codex", "--words", "lists", "--state-dir", "s"]),
-                         {"--host": "codex", "--words": "lists", "--state-dir": "s"})
-        self.assertEqual(hook._options(["--host", "codex", "--no-words"]), {"--host": "codex", "--no-words": True})
-        self.assertIsNone(hook._options(["--host", "codex", "--bogus"]))
-        self.assertIn("--words フォルダ", hook._HELP)
-        self.assertIn("--no-words", hook._HELP)
-        self.assertIn("[--words フォルダ | --no-words]", hook._HELP.splitlines()[0])
-
-    def test_no_record_command_carries_the_folder(self):
-        folder = self.root / "lists"
-        folder.mkdir()
-        write(folder / "flag.txt", "手順書\n")
-        self.registered()
-        response = json.loads(self.hook("--words", "lists"))
-        self.assertEqual(response["decision"], "block")
-        self.assertIn("yomiyasu_check.py run --source draft.md --final final.md --words {} を実行し".format(shlex.quote(str(folder))),
-                      response["reason"])
-        response = json.loads(self.hook("--no-words"))
-        self.assertIn("--source draft.md --final final.md --no-words を実行し", response["reason"])
-        self.assertEqual(self.log(), "")
-
-    def test_other_messages_carry_a_note(self):
-        folder = self.root / "lists"
-        folder.mkdir()
-        write(folder / "allow.txt", "入口\n")
-        self.registered()
-        self.cli("run", "--source", str(self.source), "--final", str(self.final), "--words", str(folder))
-        self.final.write_bytes("担当者が原稿を読みました。\n".encode("utf-8"))
-        response = json.loads(self.hook("--words", str(folder)))
-        self.assertIn("run をもう一度実行し、そのあと verify を実行してください。yomiyasu_check.py run には --words {} を"
-                      "付けてください。".format(shlex.quote(str(folder))), response["reason"])
-
-    def test_without_options_the_text_is_unchanged(self):
-        self.registered()
-        response = json.loads(self.hook())
-        self.assertIn("--source draft.md --final final.md を実行し", response["reason"])
-        self.assertNotIn("--words", response["reason"])
-        self.assertNotIn("--no-words", response["reason"])
-
-    def test_unreadable_list_is_logged_and_not_attached(self):
-        folder = self.root / "lists"
-        folder.mkdir()
-        write(folder / "allow.txt", b"\xff")
-        self.registered()
-        for options, kind in ((("--words", str(folder)), "WordsError"), (("--words", "missing"), "WordsError"),
-                              (("--words", str(folder), "--no-words"), "WordsOptionError")):
-            with self.subTest(options=options):
-                response = json.loads(self.hook(*options))
-                self.assertEqual(response["decision"], "block")
-                self.assertIn("--source draft.md --final final.md を実行し", response["reason"])
-                self.assertNotIn("--words", response["reason"])
-                self.assertIn(" Stop {} ".format(kind), self.log().splitlines()[-1])
-
-    def test_registration_message(self):
-        folder = self.root / "lists"
-        folder.mkdir()
-        write(folder / "flag.txt", "手順書\n")
-        output = self.hook("--words", str(folder), event="UserPromptSubmit",
-                           prompt="/yomiyasu " + self.source.name)
-        self.assertIn("を登録しました", output)
-        self.assertTrue(output.rstrip("\n").endswith("yomiyasu_check.py run には --words {} を付けてください。".format(shlex.quote(str(folder)))),
-                        output)
 
 
 if __name__ == "__main__":

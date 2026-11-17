@@ -1,4 +1,4 @@
-"""lint と diff の組み込みの正規表現が、この Python ですべて組めることを確かめる。
+"""lint の組み込みの正規表現が、この Python ですべて組めることを確かめる。
 
 読み込みのときに組む正規表現は、初めて使うときに組む（_lazy_compile）。試験の文で使わない正規表現は、書き誤りや、
 この Python のバージョンで使えない書き方があっても、ほかの試験では見つからない。ここで、読み込んだあとにある
@@ -20,10 +20,9 @@ import warnings
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-import yomiyasu_diff  # noqa: E402
 import yomiyasu_lint  # noqa: E402
 
-SOURCES = (ROOT / "scripts" / "yomiyasu_lint.py", ROOT / "scripts" / "yomiyasu_diff.py")
+SOURCES = (ROOT / "scripts" / "yomiyasu_lint.py",)
 
 
 def _is_re_attribute(node, names=None):
@@ -102,7 +101,7 @@ def lazy_misuses(tree):
 
 class LazyPatternTest(unittest.TestCase):
     def test_every_builtin_pattern_compiles(self):
-        for module in (yomiyasu_lint, yomiyasu_diff):
+        for module in (yomiyasu_lint,):
             with self.subTest(module=module.__name__):
                 patterns = [value for value in gc.get_objects() if type(value) is module._LazyPattern]
                 self.assertTrue(patterns)
@@ -117,7 +116,7 @@ class LazyPatternTest(unittest.TestCase):
     def test_no_builtin_pattern_warns(self):
         """組むときに警告を出す正規表現がない。同じプロセスで先に使われた正規表現は組んだものが残っているので、
         re のキャッシュを空にしてから、文字列と flags で組み直して確かめる。"""
-        for module in (yomiyasu_lint, yomiyasu_diff):
+        for module in (yomiyasu_lint,):
             with self.subTest(module=module.__name__):
                 patterns = [value for value in gc.get_objects() if type(value) is module._LazyPattern]
                 self.assertTrue(patterns)
@@ -134,7 +133,7 @@ class LazyPatternTest(unittest.TestCase):
 
 
 class LazyGuardTest(unittest.TestCase):
-    """lint と diff のソースを読み、初めて使うときに組む形が保たれていることを確かめる。"""
+    """lint のソースを読み、初めて使うときに組む形が保たれていることを確かめる。"""
 
     def test_no_compile_while_loading(self):
         for path in SOURCES:

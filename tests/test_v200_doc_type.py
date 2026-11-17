@@ -1,26 +1,17 @@
 #!/usr/bin/env python3
-"""v2.0.0（G7）: lint、diff、check run の文書の種類（--doc-type）と読者（--reader）。
+"""v2.0.0（G7）: lint の文書の種類（--doc-type）と読者（--reader）。
 
 期待値は種類と読者の設計の9章（道具のオプション）と 10.1 の表（A〜E）、末尾の追記（2026-10-13 19時。種類に
-formal を足して9つにする。lint で外す規則はなし）と、diff の詰めで足した promo（10個目。lint で emoji_prohibited を外す。
+formal を足して9つにする。lint で外す規則はなし）と、あとで足した promo（10個目。lint で emoji_prohibited を外す。
 2026-10-14 朝の作者の判断で fragment_run も外す）から取った。文はすべてこのファイルで作った合成の文。コーパスは読むだけ。
 
 - 指定しないときの出力（9章の不変の条件、10.1 の A）は、tests/fixtures/g7_unchanged_outputs.json と照らす。
-  lint、diff、check の人が読む出力、終了コード、標準エラー、check のステータス行（と、context を除いた JSON）を、コーパスの
-  全ファイルと全組で比べる。fixture の行は出どころが違う（fixture の generated_by、source_commit、source_sha256 の
-  lint、diff、check）。
+  lint の人が読む出力、終了コード、標準エラー（と、context を除いた JSON）を、コーパスの全ファイルで比べる。
   - lint の行は G7 を入れる前の作業ツリー（45a5885 に check の固めを入れたもの）の出力で、作り直していない。
     指定しないときの lint の出力が G7 の前と1字も違わないことを見る。ただし 2.2.0 で、新しい info の規則の候補が出る
-    1本の行だけを作り直した（fixture の updates）。
-  - diff と check の行は、diff の詰め（文体の硬化、勢い、否定対比の逆転、気持ちの言葉の検査と、意味が変わる恐れの判定の詰め）
-    とその直し（反証で見つけた例の直しを3回）のあとの出力で作り直したもので、G7 の前の出力とは違う。そのあとの変更で出力が
-    変わらないことを見る。G7 の前からの変化（足した節とキー、判定が変わった組、--fail-on の終了コードが変わった組と理由）は
-    fixture の updates に書いた。
-  - 状態の言葉の消えと書き足しの検出を追加した後も、同じ手順で diff と check の要約を更新した。
-    新しい候補と件数・状態行の変化だけを反映し、lint の要約は保持した（内訳は fixture の updates）。
-  lint、diff、check の出力をわざと変えたときは、fixture の generated_by に書いた作り方（このファイルの unchanged_diff() と
-  unchanged_check() の値で diff と check の行を作り直し、lint の行は作り直さず、unchanged_lint() と1字も違わないことを
-  確かめる）で作り直し、作り直した理由と、終了コードが変わった組を updates と報告に書く（条件をゆるめて通さない）。
+    1本の行は作り直した（fixture の updates）。
+  lint の出力をわざと変えたときは、unchanged_lint() の値で行を作り直し、作り直した理由と、終了コードが変わったファイルを
+  updates と報告に書く（条件をゆるめて通さない）。
   fixture の説明の欄（description、generated_by、source_commit、updates）には、手元の記録と道具の名前を書かない
   （test_v200_fix_round3.PrivatePathTest が見張る）。
 - SkillFilesTest（10.1 の C3、C4 と C5 の SKILL.md の部分）は、SKILL.md と references を入れる段までは失敗する。
@@ -28,7 +19,6 @@ formal を足して9つにする。lint で外す規則はなし）と、diff �
 
 from pathlib import Path
 from unittest import mock
-import copy
 import contextlib
 import hashlib
 import inspect
@@ -51,8 +41,6 @@ sys.path.insert(0, str(SCRIPTS))
 
 import markdown_visibility  # noqa: E402
 import yomiyasu_lint  # noqa: E402
-import yomiyasu_diff  # noqa: E402
-import yomiyasu_check  # noqa: E402
 sys.path.insert(0, str(ROOT / "tests"))
 from portable import paced_limit, timing_clock  # noqa: E402
 
@@ -108,9 +96,6 @@ READER_CHOICES = "、".join("{}（{}）".format(value, READER_NAMES[value]) for 
 # 9.1 の文どおり、値の一覧の閉じ括弧と「です」の間に空白を入れない（反証レビュー spec 6）
 DOC_TYPE_ERROR = "--doc-type に使えない値です: {}。使えるのは " + DOC_TYPE_CHOICES + "です。"
 READER_ERROR = "--reader に使えない値です: {}。使えるのは " + READER_CHOICES + "です。"
-# 9.1: diff で --endings と一緒に付けたとき（--endings と --json の組と同じ形の使い方の誤り）
-ENDINGS_ERROR = "yomiyasu_diff.py: error: --endings は --doc-type と --reader に対応していません"
-
 # 9.6 ヘルプの文（formal と promo を足した値の並び）
 LINT_DOC_TYPE_HELP = ("文書の種類。指定すると、その種類で普通な書き方を候補にする規則（下の一覧）の候補を外し、外した件数を出します。"
                       "外した候補の中身は、指定せずに実行すると見られます。省くと、すべての規則を当てます（今までどおり）。"
@@ -138,41 +123,9 @@ LINT_HELP_LIST = "\n".join([
     "種類を指定したときだけ当てる規則: slide_comma（slides だけ。種類を指定しないときは出しません）",
     "外した候補は、見直し候補の件数と --strict、--fail-on の判定に入れません。",
 ])
-# diff の詰め: 文体の硬化の検査と勢いの検査は、種類で参考（info）にするかが決まるので、その文を足した。diff の詰めの直し
-# で、硬化の参考に incident を足し、promo 以外の種類で勢いの絵文字と見出しを参考にした文を足した
-# 1回目の反証の直し（反証で見つけた例）: 変わらないものを「規則の見直し候補」に絞り、
-# minutes の見出しと promo の見出しの数え方を書いた
-_DETECTOR_HELP = ("文体の硬化の検査は incident、formal、paper のとき、勢いの検査は pr、article、incident、manual、formal、paper のとき、"
-                  "候補を参考として出します。promo と mail 以外の種類を指定すると、勢いの検査の絵文字の候補も参考として出し、"
-                  "promo、minutes、mail 以外では見出しの候補も参考として出します。promo では、番号つき項目の行と太字だけの行も"
-                  "勢いの検査の見出しに数えます。")
-# 2回目の反証の直し（反証で見つけた例）: 種類で硬化と勢いの level と promo の見出しの数え方が
-# 変わるので、冒頭の「残すだけで」を「残し、」にした
-# v2.1.0: 事実や仕様を述べる種類では、確度の2つの強まりを --fail-on に数えるようにしたので、
-# 「--fail-on は変わりません（意味の検査はどの種類でも同じに行います）」を、変わる所を書く文にした
-# （能力の言い方の消えは、実際の推敲で誤検知が多かったので、どの種類でも数えない候補にとどめた）
-_COUNTED_HELP = ("pr、article、incident、proposal、manual、formal、paper（事実や仕様を述べる種類）では、"
-                 "「場合がある」「ことがある」を消した言い切りと、断定に「必ず」などを足した書き換えを --fail-on に数えます"
-                 "（意味の検査で種類によって変わるのはこの2つだけです）。")
-DIFF_DOC_TYPE_HELP = ("文書の種類（値は yomiyasu_lint.py と同じ）。表示と JSON に残します。差分、意味が変わる恐れ、規則の見直し候補の"
-                      "見つけ方は、どの種類でも同じです。" + _COUNTED_HELP + _DETECTOR_HELP + "mail だけ敬語の度合いを検査します。値: "
-                      + DOC_TYPE_CHOICES + "。")
-DIFF_READER_HELP = "想定する読者の知識（値は yomiyasu_lint.py と同じ）。表示と JSON に残すだけで、判定は変わりません。"
-# diff の詰めの直し（反証で見つけた例）: diff と同じ、硬化と勢いを参考にする種類の文を足した
-CHECK_DOC_TYPE_HELP = ("文書の種類。lint と diff に渡し、記録とステータス行に残します。lint は、その種類で普通な書き方を候補にする規則を"
-                       "外します（yomiyasu_lint.py -h の一覧）。差分（意味が変わる恐れと規則の見直し候補）の見つけ方と、資料との照合の"
-                       "判定は変わりません。" + _COUNTED_HELP + _DETECTOR_HELP + "mail だけ敬語の度合いを検査します。値: "
-                       + DOC_TYPE_CHOICES + "。")
-CHECK_READER_HELP = "想定する読者の知識。lint と diff に渡し、記録とステータス行に残します。判定は変わりません。"
-
 # 9.3 と 9.4 の1行
 LINT_NO_SKIP = "この種類で外す規則はありません。"
 LINT_READER_NOTE = "読者では候補を変えていません。"
-# v2.1.0: 事実や仕様を述べる種類では数える候補が変わるので、「同じ規則で出しています」を、候補の見つけ方が同じという文にした
-DIFF_CONTEXT_TAIL = "候補の見つけ方は種類と読者によらず同じです。"
-# v2.1.0: 事実や仕様を述べる種類を指定したときだけ、その後ろに足す文
-DIFF_COUNTED_TAIL = ("この種類では、「場合がある」「ことがある」を消した言い切りと、断定に「必ず」などを足した書き換えも"
-                     " --fail-on に数えます。")
 LINT_HEADER = [
     "表現・書式の検査を実行しました。",
     "見直し候補: {}件",
@@ -215,9 +168,6 @@ SLIDES_LINE = ("文書の種類: スライド（slides）、読者: 指定なし
 PAIRS_22 = (("田中が佐藤を承認した。\n", "佐藤が田中を承認した。\n"),
             ("保存期間は3日です。\n", "保存期間は30日です。\n"),
             ("データを保存します。\n", "データを保存しません。\n"))
-STATUS_LINE = re.compile(r"^yomiyasu-check: ([a-z_]+)((?: [a-z_]+=\S+)*)$")
-# check run の出力で、候補があるときに3行目のあとの候補の一覧に続けて出る案内（その2行のぶん、記録の行が2行下がる）
-RUN_HEAD_NOTE = "候補の中身は下の節にあります。出力を切らずに読んでください。"
 
 
 # ---- 補助 ----
@@ -243,18 +193,6 @@ def corpus_files():
     return sorted(path.relative_to(CORPUS).as_posix() for path in CORPUS.rglob("*.md"))
 
 
-def corpus_pairs():
-    """diff の組（tools/existing_keys_check.py と同じ136組に、2.5.0 で edge_cases に足した6本の組と、3.0.0 で足した12本の組を加えた154組）。推敲の48組が先。"""
-    pairs = []
-    for name in sorted(os.listdir(str(CORPUS / "yomiyasu_rewritten"))):
-        source = ("blacklist_ai", name[:-6] + ".md") if name.endswith("_bl.md") else ("raw_ai", name)
-        pairs.append(("/".join(source), "yomiyasu_rewritten/" + name))
-    for folder in ("edge_cases", "human", "raw_ai"):
-        names = sorted(os.listdir(str(CORPUS / folder)))
-        pairs.extend((folder + "/" + a, folder + "/" + b) for a, b in zip(names, names[1:]))
-    return pairs
-
-
 def _fixture_tool_version():
     """fixture を作ったときの版（目標の D-3 で版の文字列を 2.0.0-beta に変えたので、比べるときに読み替える）。"""
     path = FIXTURES / "g7_unchanged_outputs.json"
@@ -274,28 +212,6 @@ def _digest(*parts):
     return hashlib.sha256(data.encode("utf-8")).hexdigest()[:16]
 
 
-_RUN_ID = re.compile(r"\d{8}T\d{6}Z-[0-9a-f]{8}")
-
-
-def _masked(text, state):
-    """check の出力から、一時の状態フォルダのパスと実行IDを伏せる（パスの区切りは / にそろえる）。"""
-    if state is not None:
-        for spelling in sorted(set((state, os.path.realpath(state))), key=len, reverse=True):
-            text = text.replace(spelling, "<STATE>")
-        text = re.sub(r"<STATE>[^\s\"」）]*", lambda match: match.group(0).replace("\\", "/"), text)
-    return _RUN_ID.sub("<RUN>", text)
-
-
-def _masked_value(value, state):
-    if isinstance(value, str):
-        return _masked(value, state)
-    if isinstance(value, list):
-        return [_masked_value(item, state) for item in value]
-    if isinstance(value, dict):
-        return dict((key, _masked_value(item, state)) for key, item in value.items())
-    return value
-
-
 def _without_context(text, indent):
     """JSON の文字列から context のキーを除き、同じ形で書き直す（G7 の前の JSON と比べるため）。"""
     value = json.loads(text)
@@ -303,13 +219,8 @@ def _without_context(text, indent):
     return json.dumps(value, ensure_ascii=True, indent=indent)
 
 
-def _stdin_form(source, final):
-    return (b"<<<yomiyasu:original>>>\n" + source + (b"" if source.endswith(b"\n") else b"\n")
-            + b"<<<yomiyasu:final>>>\n" + final)
-
-
 def unchanged_lint():
-    """lint（と diff --endings）の出力の要約。キーはコーパスの相対パス。"""
+    """lint の出力の要約。キーはコーパスの相対パス。"""
     rows = {}
     for relative in corpus_files():
         path = str(CORPUS / relative)
@@ -320,69 +231,7 @@ def unchanged_lint():
         code, out, err = call(yomiyasu_lint.main, ["--json", path])
         row["json"] = _digest(code, _without_context(out, 2), err)
         row["stdin"] = _digest(*call(yomiyasu_lint.main, [], stdin=data))
-        row["diff_endings"] = _digest(*call(yomiyasu_diff.main, ["--endings", path]))
         rows[relative] = row
-    return rows
-
-
-def unchanged_diff():
-    """diff の出力の要約。キーは「元|後」。"""
-    rows = {}
-    for a, b in corpus_pairs():
-        old, new = str(CORPUS / a), str(CORPUS / b)
-        row = {}
-        for name, argv in (("plain", [old, new]), ("stance", ["--stance", "説明", old, new]),
-                           ("fail_on", ["--fail-on", "meaning-risk", old, new])):
-            row[name] = _digest(*call(yomiyasu_diff.main, argv))
-        code, out, err = call(yomiyasu_diff.main, ["--json", old, new])
-        row["json"] = _digest(code, _without_context(out, 1), err)
-        row["stdin"] = _digest(*call(yomiyasu_diff.main, ["-", new], stdin=(CORPUS / a).read_bytes()))
-        rows[a + "|" + b] = row
-    return rows
-
-
-def _check_row(argv, state=None, stdin=None):
-    code, out, err = call(yomiyasu_check.main, argv + (["--state-dir", state] if state is not None else []), stdin)
-    return _digest(code, _masked(out, state), _masked(err, state))
-
-
-def unchanged_check(only=None):
-    """check の出力の要約。キーは「元|後」。全組で run と verify、推敲の48組ではほかの使い方も。
-    only に組の並びを渡すと、その組だけを動かす。"""
-    rows = {}
-    pairs = corpus_pairs()
-    rewritten = set(pair for pair in pairs if pair[1].startswith("yomiyasu_rewritten/"))
-    for a, b in (pairs if only is None else only):
-        old, new = str(CORPUS / a), str(CORPUS / b)
-        row = {}
-        with tempfile.TemporaryDirectory(prefix="yomiyasu-g7-") as state:
-            row["run"] = _check_row(["run", "--source", old, "--final", new], state)
-            row["verify"] = _check_row(["verify", "--final", new], state)
-            if (a, b) in rewritten:
-                row["replay"] = _check_row(["verify", "--final", new, "--replay"], state)
-                row["rerun"] = _check_row(["run", "--source", old, "--final", new], state)
-        if (a, b) in rewritten:
-            data_a, data_b = (CORPUS / a).read_bytes(), (CORPUS / b).read_bytes()
-            for name, argv, stdin in (
-                    ("compose", ["run", "--material", old, "--final", new], None),
-                    ("stdin", ["run", "--stdin"], _stdin_form(data_a, data_b)),
-                    ("fail_on", ["run", "--fail-on", "meaning-risk,warn", "--source", old, "--final", new], None)):
-                with tempfile.TemporaryDirectory(prefix="yomiyasu-g7-") as state:
-                    row[name] = _check_row(argv, state, stdin)
-            row["no_record"] = _check_row(["run", "--no-record", "--source", old, "--final", new])
-            with tempfile.TemporaryDirectory(prefix="yomiyasu-g7-") as state:
-                code, out, err = call(yomiyasu_check.main, ["run", "--json", "--source", old, "--final", new,
-                                                            "--state-dir", state])
-                value = json.loads(out)
-                value.pop("context", None)
-                value.pop("fact_gaps", None)  # 任意の手がかりの追加キーを除いて比較する
-                value.pop("kept_marks", None)  # 2.2.1 で足した、残した印の語
-                for key in ("lint", "diff"):
-                    if isinstance(value.get(key), dict):
-                        value[key].pop("context", None)
-                row["json"] = _digest(code, json.dumps(_masked_value(value, state), ensure_ascii=True, indent=1),
-                                      _masked(err, state))
-        rows[a + "|" + b] = row
     return rows
 
 
@@ -391,8 +240,7 @@ class DocTypeCase(unittest.TestCase):
         folder = tempfile.TemporaryDirectory(prefix="yomiyasu-doc-type-")
         self.addCleanup(folder.cleanup)
         self.root = Path(os.path.realpath(folder.name))
-        self.state = self.root / ".yomiyasu"
-        # 3.0.0: lint、diff、check は作業フォルダの外のファイルを読まないので、ファイルを置く一時フォルダで動かす
+        # 3.0.0: lint は作業フォルダの外のファイルを読まないので、ファイルを置く一時フォルダで動かす
         self.addCleanup(os.chdir, os.getcwd())
         os.chdir(str(self.root))
 
@@ -404,36 +252,12 @@ class DocTypeCase(unittest.TestCase):
     def lint(self, *argv, stdin=None):
         return call(yomiyasu_lint.main, argv, stdin)
 
-    def diff(self, *argv, stdin=None):
-        return call(yomiyasu_diff.main, argv, stdin)
-
-    def check(self, *argv, stdin=None):
-        """check を状態フォルダ self.state で動かす（ホームやリポジトリに書かない）。"""
-        return call(yomiyasu_check.main, list(argv) + ["--state-dir", self.state], stdin)
-
-    def status_fields(self, line):
-        match = STATUS_LINE.match(line)
-        self.assertIsNotNone(match, line)
-        return match.group(1), [part.split("=", 1) for part in match.group(2).split()]
-
-    def record_index(self, lines):
-        """run の出力の記録の行の位置。記録の行は5行目で、候補があるときは、3行目のあとに候補の一覧と案内の2行が入るので7行目。"""
-        index = 6 if len(lines) > 6 and lines[4] == RUN_HEAD_NOTE else 4
-        self.assertTrue(lines[index].startswith("記録: "), lines[:index + 1])
-        return index
-
-    def record(self, lines):
-        index = self.record_index(lines)
-        path = Path(lines[index][len("記録: "):])
-        return path, json.loads(path.read_text(encoding="utf-8"))
-
 
 # ---- A. 指定しないときは変わらない ----
 
 class UnchangedOutputTest(unittest.TestCase):
-    """9章の不変の条件: 指定しないときの lint、diff、check の人が読む出力、終了コード、ステータス行が fixture と1字も違わない。
-    lint は G7 の前の出力と、diff と check は diff の詰めとその直しのあとの出力と照らす（このファイルの冒頭の説明と、
-    fixture の description、updates）。"""
+    """9章の不変の条件: 指定しないときの lint の人が読む出力、終了コード、標準エラーが fixture と1字も違わない。
+    lint は G7 の前の出力と照らす（このファイルの冒頭の説明と、fixture の description、updates）。"""
 
     @classmethod
     def setUpClass(cls):
@@ -449,56 +273,11 @@ class UnchangedOutputTest(unittest.TestCase):
 
     def test_fixture_covers_the_whole_corpus(self):
         self.assertEqual(len(corpus_files()), 181)
-        self.assertEqual(len(corpus_pairs()), 154)
         self.assertEqual(sorted(self.fixture["lint"]), corpus_files())
-        self.assertEqual(sorted(self.fixture["diff"]), sorted(a + "|" + b for a, b in corpus_pairs()))
-        self.assertEqual(sorted(self.fixture["check"]), sorted(a + "|" + b for a, b in corpus_pairs()))
-        # check の試験は組を CHECK_PARTS 個に分けて流す。分けた組を合わせると、全部の組がちょうど1回ずつ入り、
-        # 分けた試験は part1 から part{CHECK_PARTS} まで1つずつある
-        parts = [pair for index in range(self.CHECK_PARTS) for pair in self.check_part(index)]
-        self.assertEqual(sorted(parts), sorted(corpus_pairs()))
-        names = sorted(name for name in dir(type(self)) if name.startswith("test_check_outputs_match_before_g7"))
-        self.assertEqual(names, sorted("test_check_outputs_match_before_g7_part{}".format(index + 1)
-                                       for index in range(self.CHECK_PARTS)))
 
     def test_lint_outputs_match_before_g7(self):
         """lint の行は G7 の前（45a5885 の作業ツリー）の出力のまま。"""
         self.compare("lint", unchanged_lint())
-
-    def test_diff_outputs_match_before_g7(self):
-        """名前は G7 の前と照らしていたときのまま。diff の行は diff の詰めとその直しのあとの出力（fixture の source_commit）。"""
-        self.compare("diff", unchanged_diff())
-
-    # check の行は、組を CHECK_PARTS 個に分け、1つずつ別の試験で照らす（試験はクラスのあとの _add_check_part_tests が作る）。
-    # 1本の試験にまとめると check を644回動かし、試験一式の時間の約2割を1本で使う。並列に流すときに、1つの worker を
-    # 長くふさがないよう分けている。
-    CHECK_PARTS = 8
-
-    @staticmethod
-    def check_part(index):
-        """index 番目（0 から）の組の並び。corpus_pairs() の順に1つずつ配る（使い方の多い推敲の48組が先に並ぶので、
-        どの組にも6つずつ入る）。"""
-        return corpus_pairs()[index::UnchangedOutputTest.CHECK_PARTS]
-
-    def compare_check_part(self, index):
-        """名前は G7 の前と照らしていたときのまま。check の行は diff の詰めとその直しのあとの出力（fixture の source_commit）。"""
-        pairs = self.check_part(index)
-        expected = {a + "|" + b: self.fixture["check"][a + "|" + b] for a, b in pairs}
-        self.compare("check", unchanged_check(pairs), expected)
-
-
-def _add_check_part_tests():
-    """test_check_outputs_match_before_g7_part1〜part{CHECK_PARTS} を UnchangedOutputTest に足す。
-    試験の数を CHECK_PARTS だけで決めて、どの試験も照らさない組ができないようにする。"""
-    for index in range(UnchangedOutputTest.CHECK_PARTS):
-        def test(self, index=index):
-            self.compare_check_part(index)
-        test.__name__ = "test_check_outputs_match_before_g7_part{}".format(index + 1)
-        test.__qualname__ = "UnchangedOutputTest." + test.__name__
-        setattr(UnchangedOutputTest, test.__name__, test)
-
-
-_add_check_part_tests()
 
 
 class DefaultsTest(DocTypeCase):
@@ -522,38 +301,6 @@ class DefaultsTest(DocTypeCase):
         code, out, err = self.lint("--json", stdin=SLIDES_SAMPLE.encode("utf-8"))
         self.assertEqual((code, err), (0, ""))
         self.assertEqual(json.loads(out)["context"], {"doc_type": None, "reader": None, "skipped_by_doc_type": {}})
-
-    def test_a3_diff_context_is_null_without_options(self):
-        """A3: diff の context は null の2つで、not_judged の次、meaning_risks の前。レポートに「文書の種類:」の行がない。"""
-        result = yomiyasu_diff.diff(*PAIRS_22[1])
-        self.assertEqual(result["context"], {"doc_type": None, "reader": None})
-        keys = list(result)
-        self.assertEqual(keys[keys.index("not_judged") + 1], "context")
-        self.assertEqual(keys[keys.index("context") + 1], "meaning_risks")
-        self.assertNotIn("文書の種類:", yomiyasu_diff.report(result))
-
-    def test_a4_check_without_options(self):
-        """A4: 記録の options.doc_type と options.reader は null で、ステータス行に doc_type= と reader= がない。
-        run と verify の JSON の context は mode の次。"""
-        a = self.write("a.md", PAIRS_22[1][0])
-        b = self.write("b.md", PAIRS_22[1][1])
-        code, out, err = self.check("run", "--source", a, "--final", b)
-        self.assertEqual((code, err), (0, ""))
-        lines = out.split("\n")
-        self.assertNotIn("doc_type=", lines[1])
-        self.assertNotIn("reader=", lines[1])
-        _, record = self.record(lines)
-        self.assertEqual(list(record["options"]), ["stance", "fail_on", "timeout", "doc_type", "reader", "fact_gaps"])
-        self.assertEqual((record["options"]["doc_type"], record["options"]["reader"]), (None, None))
-        self.assertEqual(lines[2].split("、")[0], "実行した検査: lint（最終稿）候補0件")
-        for argv in (("run", "--source", a, "--final", b), ("verify", "--final", b)):
-            code, out, err = self.check(*(argv + ("--json",)))
-            result = json.loads(out)
-            keys = list(result)
-            self.assertEqual(keys[keys.index("mode") + 1], "context", argv[0])
-            self.assertEqual(result["context"], {"doc_type": None, "reader": None}, argv[0])
-            self.assertNotIn("doc_type=", result["status_line"])
-
 
 # ---- B. lint の種類ごとの外し方 ----
 
@@ -684,7 +431,7 @@ class LintSkipTest(DocTypeCase):
         self.assertEqual(out, "\n".join([LINT_HEADER[0], LINT_HEADER[1].format(0), LINT_HEADER[2],
                                          "文書の種類: 議事録（minutes）、読者: 指定なし。種類に合わせて外した候補 0件"
                                          "（bold_label_list 0件、excess_list 0件、sentence_end_repetition 0件）。"]) + "\n")
-        # render_findings は変えない（check の節が使う）
+        # render_findings は変えない
         result = yomiyasu_lint.lint_text(SLIDES_SAMPLE, doc_type="slides")
         self.assertNotIn("文書の種類", yomiyasu_lint.render_findings(result))
 
@@ -788,30 +535,19 @@ class TableTest(unittest.TestCase):
         self.assertLess(out.index("rule_penalty_score（--json の目安）:"), out.index("終了コード:"))
 
     def test_help_texts(self):
-        """9.6 のヘルプの文。check は run だけが受け、verify は受けない。"""
+        """9.6 のヘルプの文。"""
         def helps(parser):
             return dict((option, action.help) for action in parser._actions for option in action.option_strings)
         lint_help = helps(yomiyasu_lint._build_parser())
         self.assertEqual((lint_help["--doc-type"], lint_help["--reader"]), (LINT_DOC_TYPE_HELP, LINT_READER_HELP))
-        diff_help = helps(yomiyasu_diff._build_parser())
-        self.assertEqual((diff_help["--doc-type"], diff_help["--reader"]), (DIFF_DOC_TYPE_HELP, DIFF_READER_HELP))
-        _, run, verify = yomiyasu_check._build_parser()
-        run_help = helps(run)
-        self.assertEqual((run_help["--doc-type"], run_help["--reader"]), (CHECK_DOC_TYPE_HELP, CHECK_READER_HELP))
-        self.assertNotIn("--doc-type", helps(verify))
-        self.assertNotIn("--reader", helps(verify))
-        for main, argv in ((yomiyasu_check.main, ["run", "--help"]), (yomiyasu_diff.main, ["--help"]),
-                           (yomiyasu_lint.main, ["--help"])):
-            code, out, _ = call(main, argv)
-            self.assertEqual(code, 0)
-            self.assertIn("--doc-type", out)
-            self.assertIn("--reader", out)
-        code, out, _ = call(yomiyasu_check.main, ["verify", "--help"])
-        self.assertNotIn("--doc-type", out)
+        code, out, _ = call(yomiyasu_lint.main, ["--help"])
+        self.assertEqual(code, 0)
+        self.assertIn("--doc-type", out)
+        self.assertIn("--reader", out)
 
 
 class VisibilityApiTest(unittest.TestCase):
-    """9.2: markdown_visibility の正規化と、lint と diff の1行の頭。"""
+    """9.2: markdown_visibility の正規化と、lint の1行の頭。"""
 
     def test_normalize(self):
         for raw, expected in (("SLIDES", "slides"), (" slides ", "slides"), ("ｓｌｉｄｅｓ", "slides"),
@@ -835,38 +571,25 @@ class VisibilityApiTest(unittest.TestCase):
                          "文書の種類: エッセイ・小説（essay）、読者: 同じ分野の専門家（expert）。")
 
 
-# ---- D. オプションと記録 ----
+# ---- D. オプション ----
 
 class OptionTest(DocTypeCase):
     def test_d1_normalized_in_every_tool(self):
-        """D1: 大文字、前後の空白、全角を正規化する。--doc-type=値 と --doc-type 値 の両方。lint、diff、check で同じ。"""
-        a = self.write("a.md", PAIRS_22[1][0])
+        """D1: 大文字、前後の空白、全角を正規化する。--doc-type=値 と --doc-type 値 の両方。"""
         b = self.write("b.md", SLIDES_SAMPLE)
         for form in (["--doc-type=SLIDES", "--reader= General "], ["--doc-type", "ｓｌｉｄｅｓ", "--reader", "GENERAL"]):
             code, out, _ = self.lint(*(form + ["--json", b]))
             self.assertEqual(json.loads(out)["context"]["doc_type"], "slides", form)
             self.assertEqual(json.loads(out)["context"]["reader"], "general", form)
-            code, out, _ = self.diff(*(form + ["--json", a, b]))
-            self.assertEqual(json.loads(out)["context"], {"doc_type": "slides", "reader": "general"}, form)
-            code, out, _ = self.check(*(["run", "--json", "--new-run", "--source", a, "--final", b] + form))
-            result = json.loads(out)
-            self.assertEqual(result["context"], {"doc_type": "slides", "reader": "general"}, form)
-            self.assertIn(" doc_type=slides reader=general ", result["status_line"])
 
     def test_d1_last_value_wins(self):
         """9.1: 同じオプションを2回付けたら最後の値を使う。"""
-        a = self.write("a.md", PAIRS_22[1][0])
         b = self.write("b.md", SLIDES_SAMPLE)
         _, out, _ = self.lint("--doc-type", "pr", "--doc-type", "slides", "--json", b)
         self.assertEqual(json.loads(out)["context"]["doc_type"], "slides")
-        _, out, _ = self.diff("--reader", "expert", "--reader", "general", "--json", a, b)
-        self.assertEqual(json.loads(out)["context"]["reader"], "general")
-        _, out, _ = self.check("run", "--json", "--source", a, "--final", b, "--doc-type", "pr", "--doc-type", "essay")
-        self.assertEqual(json.loads(out)["context"]["doc_type"], "essay")
 
     def test_d2_bad_values_are_usage_errors(self):
-        """D2: 使えない値と空の文字列で終了コード2。標準エラーに 9.1 の文、標準出力は空。check は状態フォルダに何も書かない。"""
-        a = self.write("a.md", PAIRS_22[1][0])
+        """D2: 使えない値と空の文字列で終了コード2。標準エラーに 9.1 の文、標準出力は空。"""
         b = self.write("b.md", PAIRS_22[1][1])
         cases = ((["--doc-type", "tech"], DOC_TYPE_ERROR.format("tech")),
                  (["--doc-type="], DOC_TYPE_ERROR.format("（空）")),
@@ -874,295 +597,12 @@ class OptionTest(DocTypeCase):
                  (["--reader", "beginner"], READER_ERROR.format("beginner")),
                  (["--reader", " "], READER_ERROR.format("（空）")))
         for option, message in cases:
-            for name, main, argv in (("lint", yomiyasu_lint.main, option + [b]),
-                                     ("diff", yomiyasu_diff.main, option + [a, b]),
-                                     ("check", yomiyasu_check.main,
-                                      ["run", "--source", a, "--final", b, "--state-dir", self.state] + option)):
-                code, out, err = call(main, argv)
-                self.assertEqual((code, out, err), (2, "", message + "\n"), (name, option))
-                self.assertFalse(self.state.exists(), (name, option))
-        # check の --stdin でも、標準入力を読む前に断り、何も書かない
-        code, out, err = self.check("run", "--stdin", "--doc-type", "x", stdin=_stdin_form(b"a\n", b"b\n"))
-        self.assertEqual((code, out, err), (2, "", DOC_TYPE_ERROR.format("x") + "\n"))
-        self.assertFalse(self.state.exists())
-
-    def test_d2_verify_does_not_take_the_options(self):
-        """9.1: check の verify は受けない（記録の値を使う）。"""
-        b = self.write("b.md", PAIRS_22[1][1])
-        for option in ("--doc-type", "--reader"):
-            code, out, err = self.check("verify", "--final", b, option, "pr")
-            self.assertEqual((code, out), (2, ""), option)
-            self.assertIn("unrecognized arguments", err)
-
-    def test_d3_diff_endings_with_the_options(self):
-        """D3: diff の --endings と --doc-type（--reader）の組は終了コード2。"""
-        b = self.write("b.md", SLIDES_SAMPLE)
-        for option in (["--doc-type", "slides"], ["--reader", "general"]):
-            code, out, err = self.diff(*(["--endings"] + option + [b]))
-            self.assertEqual((code, out), (2, ""), option)
-            self.assertIn(ENDINGS_ERROR + "\n", err)
-            self.assertTrue(err.startswith("使い方: yomiyasu_diff.py"), err)
-
-    def test_d4_diff_judgement_does_not_change(self):
-        """D4: 指示書2.2の3組と推敲の48組で、種類と読者を付けても、context 以外の JSON と --fail-on の終了コードは同じ。
-        diff の詰めで足した文体の硬化の検査（stiffness）と勢いの検査（tone）だけは、種類で level（見直し候補 review か
-        参考 info）が変わる（追加文書 2.4、勢いの文書 3.3）。候補と値は同じなので、level を除いて比べ、level は表のとおりか見る。
-        diff の詰めの直しで、硬化の参考に incident を足し、promo 以外の種類では勢いの
-        絵文字と見出しを参考にした（候補ごとの level）。promo では、番号つき項目の行と太字だけの行も勢いの見出しの字数に数える
-        （反証で見つけた例）ので、promo だけは見出しの字数と見出しの候補を除いて比べ、違いがそこだけであることを見る。
-        v2.1.0 で、事実や仕様を述べる種類（COUNTED_TYPES。ここでは pr、formal、incident）では、確度の2つの段
-        （"counted_by": "doc_type"）を --fail-on に数えるようにした。候補の位置と中身は同じなので、その段を種類なしの形に
-        戻してから比べ、違いがそこだけであることを見る（能力の言い方の消えは、どの種類でも数えない modality_review のまま）。"""
-        pairs = list(PAIRS_22) + [((CORPUS / a).read_text(encoding="utf-8"), (CORPUS / b).read_text(encoding="utf-8"))
-                                  for a, b in corpus_pairs()[:48]]
-        options = ({"doc_type": "slides", "reader": "general"}, {"doc_type": "essay", "reader": "expert"},
-                   {"doc_type": "pr", "reader": "informed"}, {"doc_type": "formal", "reader": None},
-                   {"doc_type": "incident", "reader": None}, {"doc_type": "promo", "reader": None})
-        reference = {"stiffness": ("incident", "formal"), "tone": ("pr", "article", "incident", "manual", "formal")}
-
-        def expected_level(key, doc_type, subkind):
-            if doc_type in reference[key]:
-                return "info"
-            if key == "tone" and doc_type not in (None, "promo") and subkind in ("emoji", "heading"):
-                return "info"
-            return "review"
-
-        def without_level(result, promo=False):
-            for key in ("stiffness", "tone"):
-                section = dict(result[key])
-                section.pop("level")
-                section["candidates"] = [dict((k, v) for k, v in item.items() if k != "level")
-                                         for item in section["candidates"]
-                                         if not (promo and key == "tone" and item["subkind"] == "heading")]
-                if promo and key == "tone":
-                    section["candidate_count"] = len(section["candidates"])
-                    section["counts"] = dict((side, dict((k, v) for k, v in counts.items() if k != "heading_chars"))
-                                             for side, counts in section["counts"].items())
-                result[key] = section
-            return result
-
-        def without_counting(result, doc_type):
-            """種類で数える側に入れた候補を、種類なしの形に戻す（数える種類でなければ何も変えない）。"""
-            if doc_type not in yomiyasu_diff.COUNTED_TYPES:
-                return result
-            risks = []
-            for risk in result["meaning_risks"]:
-                risk = copy.deepcopy(risk)
-                if risk["kind"] in ("certainty", "certainty_review"):
-                    for step in risk["detail"]["steps"]:
-                        if step.pop("counted_by", None) == "doc_type":
-                            step["counted"] = False
-                    risk["kind"] = "certainty" if any(step["counted"] for step in risk["detail"]["steps"]) else "certainty_review"
-                risks.append(risk)
-            result["meaning_risks"] = risks
-            result["fail_on_meaning_risk_count"] = yomiyasu_diff.fail_on_count(risks)
-            return result
-        for old, new in pairs:
-            plain = yomiyasu_diff.diff(old, new)
-            plain.pop("context")
-            for given in options:
-                result = yomiyasu_diff.diff(old, new, **given)
-                self.assertEqual(result.pop("context"), given)
-                result = without_counting(result, given["doc_type"])
-                for key in reference:
-                    for item in result[key]["candidates"]:
-                        self.assertEqual(item["level"], expected_level(key, given["doc_type"], item["subkind"]), (key, given))
-                    levels = set(item["level"] for item in result[key]["candidates"])
-                    if levels:
-                        self.assertEqual(result[key]["level"], "review" if "review" in levels else "info", (key, given))
-                    else:
-                        self.assertEqual(result[key]["level"], expected_level(key, given["doc_type"], None), (key, given))
-                promo = given["doc_type"] == "promo"
-                self.assertEqual(without_level(result, promo), without_level(copy.deepcopy(plain), promo), given)
-        for number, (old, new) in enumerate(PAIRS_22):
-            a = self.write("a{}.md".format(number), old)
-            b = self.write("b{}.md".format(number), new)
-            code, _, _ = self.diff("--fail-on=meaning-risk", a, b)
-            for given in options:
-                argv = ["--fail-on=meaning-risk", "--doc-type", given["doc_type"]]
-                argv += ["--reader", given["reader"]] if given["reader"] else []
-                self.assertEqual(self.diff(*(argv + [a, b]))[0], code, given)
-
-    def test_diff_human_output_line(self):
-        """9.4: 指定したときだけ、断りの行のすぐあとに1行。最後のステータス行は変えない。"""
-        a = self.write("a.md", PAIRS_22[1][0])
-        b = self.write("b.md", PAIRS_22[1][1])
-        _, plain, _ = self.diff(a, b)
-        code, out, err = self.diff("--doc-type", "incident", a, b)
-        self.assertEqual((code, err), (0, ""))
-        lines, plain_lines = out.split("\n"), plain.split("\n")
-        self.assertEqual(lines[:3], plain_lines[:3])
-        self.assertEqual(lines[3], "文書の種類: 障害報告（incident）、読者: 指定なし。" + DIFF_CONTEXT_TAIL + DIFF_COUNTED_TAIL)
-        self.assertEqual(lines[4:], plain_lines[3:])
-        _, out, _ = self.diff("--reader", "general", a, b)
-        self.assertEqual(out.split("\n")[3], "文書の種類: 指定なし、読者: 専門知識のない人（general）。" + DIFF_CONTEXT_TAIL)
-        _, out, _ = self.diff("--doc-type", "essay", a, b)
-        self.assertEqual(out.split("\n")[3], "文書の種類: エッセイ・小説（essay）、読者: 指定なし。" + DIFF_CONTEXT_TAIL)
-        parameters = inspect.signature(yomiyasu_diff.diff).parameters
-        self.assertEqual(list(parameters)[:3], ["orig_raw", "rw_raw", "stance"])
-        for name in ("encoding_notes", "doc_type", "reader"):
-            self.assertEqual(parameters[name].kind, inspect.Parameter.KEYWORD_ONLY, name)
-
-    def test_d5_check_passes_the_values_to_the_children(self):
-        """D5: check run は子の lint と diff に正規化した値を渡す。新規作成では lint だけ（原文とみなした資料があれば diff にも）。"""
-        a = self.write("a.md", PAIRS_22[1][0])
-        b = self.write("b.md", SLIDES_SAMPLE)
-        code, out, err = self.check("run", "--source", a, "--final", b, "--doc-type", "SLIDES", "--reader", "General")
-        self.assertEqual((code, err), (0, ""))
-        lines = out.split("\n")
-        path, record = self.record(lines)
-        folder = path.parent
-        lint = json.loads((folder / "attempt-1.lint.json").read_text(encoding="utf-8"))
-        diff = json.loads((folder / "attempt-1.diff.json").read_text(encoding="utf-8"))
-        self.assertEqual(lint["context"], {"doc_type": "slides", "reader": "general",
-                                           "skipped_by_doc_type": {"bare_verb_chain": 0, "bold_label_list": 1,
-                                                                   "cleft_list_ending": 0,
-                                                                   "count_declaration": 0,
-                                                                   "excess_list": 0, "short_summary_heading": 1}})
-        self.assertEqual(diff["context"], {"doc_type": "slides", "reader": "general"})
-        # 子の .lint.txt には lint の4行目が入る
-        self.assertEqual((folder / "attempt-1.lint.txt").read_text(encoding="utf-8").split("\n")[3],
-                         SLIDES_LINE.replace("読者: 指定なし。", "読者: 専門知識のない人（general）。") + LINT_READER_NOTE)
-        # 新規作成（資料が最終稿と似ていない）: lint だけに渡す
-        material = self.write("memo.md", "検索の仕組みを10月から変える。対象は社内の文書。担当は検索チーム。\n")
-        code, out, err = self.check("run", "--material", material, "--final", b, "--doc-type", "slides")
-        lines = out.split("\n")
-        self.assertIn(" mode=compose doc_type=slides checks=lint,materials", lines[1])
-        path, record = self.record(lines)
-        self.assertEqual(json.loads((path.parent / "attempt-1.lint.json").read_text(encoding="utf-8"))["context"]["doc_type"],
-                         "slides")
-        self.assertFalse((path.parent / "attempt-1.diff.json").exists())
-        # 新規作成で資料を原文とみなしたとき（10.8 C-44）は diff にも渡す
-        similar = self.write("similar.md", SLIDES_SAMPLE.replace("速くなります", "速くなる予定です"))
-        code, out, err = self.check("run", "--material", similar, "--final", b, "--doc-type", "slides", "--reader", "expert")
-        lines = out.split("\n")
-        self.assertIn(" mode=compose doc_type=slides reader=expert checks=lint,diff,materials", lines[1])
-        path, record = self.record(lines)
-        self.assertEqual(json.loads((path.parent / "attempt-1.diff.json").read_text(encoding="utf-8"))["context"],
-                         {"doc_type": "slides", "reader": "expert"})
-
-    def test_d6_record_status_line_and_json(self):
-        """D6: 記録の options、ステータス行の doc_type= と reader=（mode= の次、付けたときだけ）、3行目、verify のステータス行と JSON。"""
-        a = self.write("a.md", PAIRS_22[1][0])
-        b = self.write("b.md", SLIDES_SAMPLE)
-        code, out, err = self.check("run", "--source", a, "--final", b, "--doc-type", "slides", "--reader", "general")
-        lines = out.split("\n")
-        state, fields = self.status_fields(lines[1])
-        keys = [key for key, _ in fields]
-        self.assertEqual(keys, ["via", "run", "attempt", "final", "mode", "doc_type", "reader", "checks", "meaning_risk"])
-        self.assertEqual(dict(fields)["doc_type"], "slides")
-        self.assertEqual(dict(fields)["reader"], "general")
-        self.assertTrue(lines[2].startswith("実行した検査: lint（最終稿、種類 slides、外した候補2件）候補1件、diff（原文→最終稿）"),
-                        lines[2])
-        self.assertEqual(lines[-2:], [lines[1], ""])
-        _, record = self.record(lines)
-        self.assertEqual(list(record["options"]), ["stance", "fail_on", "timeout", "doc_type", "reader", "fact_gaps"])
-        self.assertEqual((record["options"]["doc_type"], record["options"]["reader"]), ("slides", "general"))
-        self.assertEqual(record["result"]["token"], lines[1])
-        # verify は記録の値をステータス行と JSON に出す
-        code, out, err = self.check("verify", "--final", b)
-        self.assertEqual(code, 0, out + err)
-        verify_lines = out.split("\n")
-        self.assertIn(" mode=rewrite doc_type=slides reader=general checks=lint,diff ", verify_lines[1])
-        code, out, err = self.check("verify", "--final", b, "--json")
-        result = json.loads(out)
-        keys = list(result)
-        self.assertEqual(keys[keys.index("mode") + 1], "context")
-        self.assertEqual(result["context"], {"doc_type": "slides", "reader": "general"})
-        # 読者だけ: 3行目は変えない（読者は検査を変えないので書かない）。ステータス行には reader= だけ
-        c = self.write("c.md", SLIDES_SAMPLE + "追記です。\n")
-        code, out, err = self.check("run", "--new-run", "--source", a, "--final", c, "--reader", "expert")
-        lines = out.split("\n")
-        self.assertTrue(lines[2].startswith("実行した検査: lint（最終稿）候補3件、"), lines[2])
-        self.assertIn(" mode=rewrite reader=expert checks=lint,diff ", lines[1])
-        # 種類だけ（外す規則がない種類）: 外した候補0件
-        d = self.write("d.md", SLIDES_SAMPLE + "追記2です。\n")
-        code, out, err = self.check("run", "--new-run", "--source", a, "--final", d, "--doc-type", "formal")
-        lines = out.split("\n")
-        self.assertTrue(lines[2].startswith("実行した検査: lint（最終稿、種類 formal、外した候補0件）候補3件、"), lines[2])
-        self.assertIn(" mode=rewrite doc_type=formal checks=lint,diff ", lines[1])
-        # ステータス行は読む側の正規表現にそのまま当たる
-        self.assertIsNotNone(STATUS_LINE.match(lines[1]))
-
-    def test_d6_stdin_run(self):
-        """9.5: run --stdin でも同じ。"""
-        code, out, err = self.check("run", "--stdin", "--doc-type", "minutes",
-                                    stdin=_stdin_form(PAIRS_22[1][0].encode("utf-8"), SENTENCE_END_ONLY.encode("utf-8")))
-        self.assertEqual((code, err), (0, ""))
-        lines = out.split("\n")
-        self.assertIn(" mode=rewrite doc_type=minutes checks=lint,diff ", lines[1])
-        self.assertTrue(lines[2].startswith("実行した検査: lint（最終稿、種類 minutes、外した候補1件）候補0件、"), lines[2])
-
-    def test_d6_same_run_may_change_the_type(self):
-        """9.5: 同じ実行IDの2回目で種類か読者を変えてもよい（回ごとの記録に残る）。"""
-        a = self.write("a.md", PAIRS_22[1][0])
-        b = self.write("b.md", SLIDES_SAMPLE)
-        _, out1, _ = self.check("run", "--source", a, "--final", b, "--doc-type", "slides")
-        _, out2, _ = self.check("run", "--source", a, "--final", b, "--doc-type", "article")
-        first, second = self.record(out1.split("\n"))[1], self.record(out2.split("\n"))[1]
-        self.assertEqual((first["run_id"], first["attempt"]), (second["run_id"], 1))
-        self.assertEqual(second["attempt"], 2)
-        self.assertEqual((first["options"]["doc_type"], second["options"]["doc_type"]), ("slides", "article"))
-
-    def test_d7_replay_and_tampered_records(self):
-        """D7: 種類を付けた記録で verify --replay が replay=ok。記録の options.doc_type を書き換えると invalid_record。
-        digest を計算し直しても、使えない値か、レポートの context と違う値なら invalid_record。"""
-        a = self.write("a.md", PAIRS_22[1][0])
-        b = self.write("b.md", SLIDES_SAMPLE)
-        code, out, err = self.check("run", "--source", a, "--final", b, "--doc-type", "slides", "--reader", "general")
-        path, record = self.record(out.split("\n"))
-        code, out, err = self.check("verify", "--final", b, "--replay")
-        self.assertEqual(code, 0, out + err)
-        self.assertIn(" doc_type=slides reader=general ", out.split("\n")[1])
-        self.assertTrue(out.split("\n")[1].endswith(" replay=ok"), out)
-        original = path.read_bytes()
-
-        def rewrite(change, digest):
-            value = json.loads(original.decode("utf-8"))
-            change(value)
-            if digest:
-                value["record_digest"] = yomiyasu_check._record_digest(value)
-            path.write_bytes((json.dumps(value, ensure_ascii=True, indent=1) + "\n").encode("utf-8"))
-
-        rewrite(lambda value: value["options"].update(doc_type="pr"), False)
-        code, out, err = self.check("verify", "--final", b)
-        self.assertEqual((code, out.split("\n")[1].split()[1]), (1, "invalid_record"), out)
-        for bad in ("foo", "SLIDES", 3):
-            rewrite(lambda value: value["options"].update(doc_type=bad), True)
-            code, out, err = self.check("verify", "--final", b)
-            self.assertEqual((code, out.split("\n")[1].split()[1]), (1, "invalid_record"), (bad, out))
-        rewrite(lambda value: value["options"].update(reader="beginner"), True)
-        code, out, err = self.check("verify", "--final", b)
-        self.assertEqual(out.split("\n")[1].split()[1], "invalid_record", out)
-        # digest を計算し直して別の種類にした記録は、ハッシュを確かめたレポートの context と合わないので、--replay なしでも
-        # invalid_record（記録の件数の照らしと同じ）
-        for change in ({"doc_type": "pr"}, {"doc_type": None}, {"reader": None}, {"reader": "expert"}):
-            rewrite(lambda value: value["options"].update(change), True)
-            code, out, err = self.check("verify", "--final", b)
-            self.assertEqual((code, out.split("\n")[1].split()[1]), (1, "invalid_record"), (change, out))
-            code, out, err = self.check("verify", "--final", b, "--json")
-            problems = json.loads(out)["problems"]
-            self.assertIn("summary_mismatch", [problem["code"] for problem in problems], change)
-            self.assertIn("lint.context", json.dumps(problems), change)
-            self.assertIn("diff.context", json.dumps(problems), change)
-        # このキーを足す前の記録（options に doc_type と reader がない）は、値なしとして読む
-        c = self.write("c.md", PAIRS_22[1][1])
-        code, out, err = self.check("run", "--source", a, "--final", c)
-        path_c, record_c = self.record(out.split("\n"))
-        for key in ("doc_type", "reader"):
-            record_c["options"].pop(key)
-        record_c["record_digest"] = yomiyasu_check._record_digest(record_c)
-        path_c.write_bytes((json.dumps(record_c, ensure_ascii=True, indent=1) + "\n").encode("utf-8"))
-        code, out, err = self.check("verify", "--final", c)
-        self.assertEqual((code, out.split("\n")[1].split()[1]), (0, "executed"), out)
-        self.assertNotIn("doc_type=", out)
+            code, out, err = call(yomiyasu_lint.main, option + [b])
+            self.assertEqual((code, out, err), (2, "", message + "\n"), option)
 
     def test_d8_versions_do_not_change(self):
         """D8: --version と形式の版は変えない（9.7）。"""
         self.assertEqual(call(yomiyasu_lint.main, ["--version"])[1], "yomiyasu_lint.py 3.1.0 (JSON format 2)\n")
-        self.assertEqual(call(yomiyasu_diff.main, ["--version"])[1], "yomiyasu_diff.py 3.1.0 (JSON format 2)\n")
-        self.assertEqual(call(yomiyasu_check.main, ["--version"])[1],
-                         "yomiyasu_check.py 3.1.0 (record format 1, result format 1, materials format 1)\n")
 
 
 # ---- E. 速さ ----

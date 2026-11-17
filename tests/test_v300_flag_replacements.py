@@ -3,7 +3,6 @@
 文と git リポジトリは合成のもの。一覧は一時フォルダの中だけに作る。
 """
 from pathlib import Path
-import json
 import os
 import shutil
 import subprocess
@@ -11,9 +10,8 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_v220_c import CHECK, DIFF, WORD_KEYS, FolderCase, run, write  # noqa: E402
+from test_v220_c import FolderCase, run, write  # noqa: E402
 import markdown_visibility  # noqa: E402
-import yomiyasu_check  # noqa: E402
 import yomiyasu_lint  # noqa: E402
 
 
@@ -60,37 +58,6 @@ class FlagReplacementTest(FolderCase):
                 write(folder / "allow.txt", allowed)
                 found = [f for f in self.lint_json(str(doc))["findings"] if f["rule"] == "project_term"]
                 self.assertEqual([f["message"] for f in found], [message])
-
-    def test_check_shows_replacement_without_changing_record_keys(self) -> None:
-        folder = self.words(flag="指紋\tfingerprint\n")
-        write(folder / "flag-patterns.txt", "branch\t枝\n")
-        doc = write(self.root / "doc.md", "指紋を照合します。\n枝を見ます。\n")
-        source = write(self.root / "source.md", "指紋を照合します。\n枝を確認します。\n")
-        process = run([CHECK, "run", "--source", source, "--final", doc], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- 指紋（用語リスト。L1。推奨語: fingerprint）", process.stdout)
-        self.assertIn("- branch（用語リスト。L2）", process.stdout)
-        record_path, = (self.root / ".yomiyasu" / "runs").glob("*/attempt-1.json")
-        record = json.loads(record_path.read_text(encoding="utf-8"))
-        self.assertEqual(list(record["options"]["words"]), WORD_KEYS + ["flag_patterns_lines", "flag_patterns_sha256"])
-        process = run([CHECK, "verify", "--final", doc, "--replay"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("replay=ok", process.stdout)
-        # flag.txt の語と同じ名前のパターンだけが当たるときは、推奨語を添えない。
-        write(folder / "flag-patterns.txt", "指紋\t照合\n")
-        write(doc, "照合します。\n")
-        process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- 指紋（用語リスト。L1）", process.stdout)
-        self.assertNotIn("推奨語:", process.stdout)
-        # パターンだけが当たった語の推奨語が、ほかの語の推奨語の一部に見えても添えない。
-        write(folder / "flag.txt", "公開鍵\tkey\n鍵\tkey\n")
-        write(folder / "flag-patterns.txt", "鍵\t照合\n")
-        write(doc, "公開鍵を照合します。\n")
-        process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- 公開鍵（用語リスト。L1。推奨語: key）", process.stdout)
-        self.assertIn("- 鍵（用語リスト。L1）", process.stdout)
 
     def test_linked_worktree_uses_original_checkout_words(self) -> None:
         repo = self.root / "checkout"
@@ -182,19 +149,14 @@ class FlagRowsTest(FolderCase):
         self.assertEqual(words["flag_replacements"], {"指紋": "フィンガープリント"})
 
     def test_tab_inside_replacement_is_an_input_error(self) -> None:
-        # 3列の行（使わない語<TAB>推奨語<TAB>メモ）は、ファイルの名前と行番号を出して止める（lint、diff、check とも終了コード2）。
+        # 3列の行（使わない語<TAB>推奨語<TAB>メモ）は、ファイルの名前と行番号を出して止める（lint は終了コード2）。
         folder = self.words(flag="承認\n指紋\tfingerprint\tメモ\n", allow="")
         doc = write(self.root / "doc.md", "指紋を照合します。\n")
-        source = write(self.root / "source.md", "指紋を照合します。\n")
         message = "Error opening file {}: 2行目の推奨語の中にタブがあります".format(folder / "flag.txt")
-        for command in ([yomiyasu_lint.__file__, doc], [DIFF, source, doc],
-                        [CHECK, "run", "--source", source, "--final", doc, "--no-record"]):
-            with self.subTest(command=Path(command[0]).name):
-                process = run(command, self.root, self.env)
-                self.assertEqual(process.returncode, 2, process.stdout + process.stderr)
-                self.assertEqual(process.stdout, "")
-                self.assertIn(message, process.stderr)
-        self.assertFalse((self.root / ".yomiyasu").exists())
+        process = run([yomiyasu_lint.__file__, doc], self.root, self.env)
+        self.assertEqual(process.returncode, 2, process.stdout + process.stderr)
+        self.assertEqual(process.stdout, "")
+        self.assertIn(message, process.stderr)
         # 桁をそろえるために続けた TAB と、行末の TAB は読む。
         self.words(flag="指紋\t\t fingerprint \t\n")
         found = self.project_terms(doc)
@@ -232,12 +194,7 @@ class FlagRowsTest(FolderCase):
         # 推奨語のない同じ語は、今までどおり語の一部にも当たる。
         self.words(flag="サーバ\n")
         self.assertEqual([f["line"] for f in self.project_terms(doc)], [1, 2, 3])
-        # check の「残した指摘の言葉」にも、もう推奨語で書いてある行は出ない。
         self.words(flag="サーバ\tサーバー\n")
-        source = write(self.root / "source.md", doc.read_bytes())
-        process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("- サーバ（用語リスト。L2、L3。推奨語: サーバー）", process.stdout)
 
     def test_word_twice_in_the_replacement(self) -> None:
         # 推奨語が使わない語を2回含む組では、2つ目の位置の当たりも推奨語の中に収まるとみなす。
@@ -278,68 +235,6 @@ class FlagRowsTest(FolderCase):
         self.words(flag="サーバ\tサーバー\nサーバ\tサーバ\n")
         self.assertEqual(markdown_visibility.load_words(str(folder))["flag_replacements"], {"サーバ": "サーバー"})
 
-    def test_check_reads_words_before_the_replacement_tail(self) -> None:
-        # 推奨語に「）の候補です」があっても、check は語を「推奨語: 」より前から取る。
-        self.words(flag="指紋\t印）の候補です\n", allow="")
-        doc = write(self.root / "doc.md", "指紋を照合します。\n")
-        source = write(self.root / "source.md", "指紋を照合します。\n")
-        process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("\n- 指紋（用語リスト。L1。推奨語: 印）の候補です）\n", process.stdout)
-        self.assertIn("（最終稿の直訳語と用語リストの指摘。1語）", process.stdout)
-
-    def test_check_words_with_the_tail_marker_and_no_replacement(self) -> None:
-        # 推奨語を添えない指摘は、語やパターンの名前に「。推奨語: 」があっても、語をそのまま取る（3.0.0 の前と同じ読み方）。
-        self.assertEqual(yomiyasu_check._PROJECT_TERM_PLAIN_TAIL, "）" + yomiyasu_lint._V220_MESSAGE_TAIL)
-        folder = self.words(flag="承認\n。推奨語: 指紋\n", allow="")
-        write(folder / "flag-patterns.txt", "名前。推奨語: 別\t照合\n")
-        doc = write(self.root / "doc.md", "承認して照合します。\n付きます。推奨語: 指紋 と出ます。\n")
-        source = write(self.root / "source.md", doc.read_bytes())
-        process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("\n- 承認（用語リスト。L1）\n", process.stdout)
-        self.assertIn("\n- 名前。推奨語: 別（用語リスト。L1）\n", process.stdout)
-        self.assertIn("\n- 。推奨語: 指紋（用語リスト。L2）\n", process.stdout)
-        self.assertIn("（最終稿の直訳語と用語リストの指摘。3語）", process.stdout)
-        self.assertNotIn("語の取れない指摘", process.stdout)
-
-    def test_check_does_not_read_a_replacement_from_a_pattern_name(self) -> None:
-        # 推奨語を添えない指摘のパターンの名前が「推奨語: 語 → 推奨語」の形でも、ほかの行の同じ名前の語に推奨語を添えない。
-        folder = self.words(flag="指紋\tfp\n", allow="")
-        write(folder / "flag-patterns.txt", "指紋）の候補です。推奨語: 指紋 → fp\t照合\nx\t照合\n指紋\t確認\n")
-        doc = write(self.root / "doc.md", "照合します。\n確認します。\n")
-        source = write(self.root / "source.md", doc.read_bytes())
-        process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("\n- 指紋（用語リスト。L2）\n", process.stdout)
-        self.assertNotIn("L2。推奨語: fp", process.stdout)
-
-    def test_check_section_names_the_replacement_as_a_source(self) -> None:
-        # 推奨語のある語が残った run だけ、冒頭の行と節の文が推奨語に触れる。残らない run の文は今までのまま。
-        self.words(flag="指紋\tfingerprint\n承認\n", allow="")
-        doc = write(self.root / "doc.md", "指紋を照合します。\n承認を待ちます。\n")
-        source = write(self.root / "source.md", "指紋を照合します。\n承認を待ちます。\n")
-        process = run([CHECK, "run", "--source", source, "--final", doc], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("残した指摘の言葉: 指紋（用語リスト。L1。推奨語: fingerprint）、承認（用語リスト。L2）。", process.stdout)
-        self.assertIn("（最終稿の直訳語と用語リストの指摘。2語）\nflag.txt の推奨語は、替える名前の出典にできます"
-                      "（references/calques.md 4章）。\n最終稿に残した次の語は、", process.stdout)
-        self.assertIn("\n- 書き直しに使う名前が flag.txt の推奨語、原文、依頼、提供資料、文脈のどれにもないか、"
-                      "動作やその動作をする人が、原文、依頼、提供資料、文脈のどれにも書いていないか、", process.stdout)
-        self.assertNotIn("書き直しに使う名前や動作、", process.stdout)
-        # verify の「残した指摘の言葉」には推奨語を添えない。
-        process = run([CHECK, "verify", "--final", doc], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("指紋（用語リスト。L1）", process.stdout)
-        self.assertNotIn("推奨語", process.stdout)
-        write(doc, "承認を待ちます。\n")
-        process = run([CHECK, "run", "--source", source, "--final", doc, "--no-record"], self.root, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("（最終稿の直訳語と用語リストの指摘。1語）\n最終稿に残した次の語は、", process.stdout)
-        self.assertIn("\n- 書き直しに使う名前や動作、その動作をする人が、原文、依頼、提供資料、文脈のどれにも書いていないか、",
-                      process.stdout)
-        self.assertNotIn("推奨語", process.stdout)
-
 
 class WorktreeFallbackShapeTest(FolderCase):
     """linked worktree の探し方の端。git を使わずに、.git ファイルと管理フォルダを手で作る（Windows の CI でも動く）。"""
@@ -357,18 +252,10 @@ class WorktreeFallbackShapeTest(FolderCase):
         main, work, admin = self.worktree()
         folder = self.words(main / ".yomiyasu-words", flag="指紋\tfingerprint\n")
         doc = write(work / "docs" / "doc.md", "指紋を照合します。\n")
-        source = write(work / "docs" / "source.md", "指紋を照合する。\n")
         for marker in ("gitdir: {}\n".format(admin), "gitdir: ../main/.git/worktrees/w\n"):
             with self.subTest(marker=marker):
                 write(work / ".git", marker)
                 self.assertEqual(self.lint_json(str(doc), cwd=doc.parent)["context"]["words"]["path"], str(folder))
-        # check run は元の checkout の場所を記録に残し、verify --replay はその場所でやり直す。
-        process = run([CHECK, "run", "--source", source, "--final", doc], doc.parent, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("用語リスト: {}".format(folder), process.stdout)
-        process = run([CHECK, "verify", "--final", doc, "--replay"], doc.parent, self.env)
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        self.assertIn("replay=ok", process.stdout)
         # worktree に空の .yomiyasu-words/ を置くと、元の checkout の一覧を読まない（--no-words と同じく一覧なし）。
         (work / ".yomiyasu-words").mkdir()
         self.assertNotIn("words", self.lint_json(str(doc), cwd=doc.parent)["context"])

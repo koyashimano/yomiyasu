@@ -7,14 +7,12 @@
 """
 from pathlib import Path
 import hashlib
-import json
 import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_v220_c import CHECK, DIFF, LINT, WORD_KEYS, FolderCase, run, write  # noqa: E402
+from test_v220_c import LINT, WORD_KEYS, FolderCase, run, write  # noqa: E402
 import markdown_visibility  # noqa: E402
-import yomiyasu_check  # noqa: E402
 import yomiyasu_lint  # noqa: E402
 from portable import paced_limit, timing_clock  # noqa: E402
 
@@ -174,12 +172,10 @@ class InvalidPatternTest(PatternCase):
             with self.subTest(data=data[:40]):
                 folder = self.patterns(data)
                 path = str(folder / "flag-patterns.txt")
-                for command in ([LINT, str(doc)], [DIFF, str(doc), str(doc)],
-                                [CHECK, "run", "--source", str(doc), "--final", str(doc), "--no-record"]):
-                    process = run(command, self.root, self.env)
-                    self.assertEqual(process.returncode, 2, process.stdout + process.stderr)
-                    self.assertIn("Error opening file {}: ".format(path), process.stderr)
-                    self.assertIn("{}行目".format(line), process.stderr)
+                process = run([LINT, str(doc)], self.root, self.env)
+                self.assertEqual(process.returncode, 2, process.stdout + process.stderr)
+                self.assertIn("Error opening file {}: ".format(path), process.stderr)
+                self.assertIn("{}行目".format(line), process.stderr)
 
     def test_accepted_shapes(self):
         for pattern in (r"(?<=の)枝(?![一-龥々])|(?<![一-龥々])枝(?=[のでにをはが]|ごと)",
@@ -203,81 +199,17 @@ class InvalidPatternTest(PatternCase):
                     markdown_visibility.check_pattern(pattern)
 
 
-class CheckRecordTest(PatternCase):
-    def setUp(self):
-        super().setUp()
-        self.state = self.root / ".yomiyasu"
-        self.a = write(self.root / "a.md", "修正の枝を、今日中に main に入れます。\n")
-        self.b = write(self.root / "b.md", "修正の枝を、今日中に main にマージします。\n")
-
-    def check(self, *args):
-        return run([CHECK] + list(args), self.root, self.env)
-
-    def test_check_record_and_replay(self):
-        folder = self.patterns(BRANCH)
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--json")
-        self.assertEqual(process.returncode, 0, process.stderr + process.stdout)
-        result = json.loads(process.stdout)
-        expected = markdown_visibility.words_context(markdown_visibility.load_words(str(folder)))
-        self.assertEqual(list(expected), PATTERN_KEYS)
-        self.assertEqual(result["context"]["words"], expected)
-        self.assertEqual(result["diff"]["context"]["words"], expected)
-        record = json.loads(Path(result["record_path"]).read_text(encoding="utf-8"))
-        self.assertEqual(record["options"]["words"], expected)
-        self.assertIn("branch", [mark["word"] for mark in result["kept_marks"]])
-        process = self.check("verify", "--final", str(self.b), "--replay")
-        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
-        self.assertIn("replay=ok", process.stdout)
-        # 一覧を書き換えたら、作り直したレポートが合わない
-        write(folder / "flag-patterns.txt", BRANCH + "main\tmain ?に\n")
-        process = self.check("verify", "--final", str(self.b), "--replay")
-        self.assertEqual(process.returncode, 1, process.stdout)
-        self.assertIn("not_reproducible", process.stdout)
-
-    def test_kept_mark_section_names_patterns(self):
-        self.patterns(BRANCH)
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-record")
-        self.assertIn("用語リスト（flag.txt）の言葉" + yomiyasu_check._KEPT_MARK_PATTERNS_NOTE + "は、", process.stdout)
-        self.assertIn("branch", process.stdout)
-        self.assertIn("flag-patterns 1行", process.stdout)
-
-    def test_kept_mark_section_without_patterns_unchanged(self):
-        self.words(flag="枝\n")
-        process = self.check("run", "--source", str(self.a), "--final", str(self.b), "--no-record")
-        self.assertIn("用語リスト（flag.txt）の言葉は、定着した言い方でも残さない。", process.stdout)
-        self.assertNotIn(yomiyasu_check._KEPT_MARK_PATTERNS_NOTE, process.stdout)
-
-    def test_record_shape_accepts_five_and_seven_keys(self):
-        # パスはその環境の絶対パスにする（Windows では "/x" はドライブがなく、Path.is_absolute が偽になる。PR #54 の test_v220_c と同じ）
-        five = {"path": str(self.root / "words"), "allow_lines": 0, "flag_lines": 1, "allow_sha256": None, "flag_sha256": "0" * 64}
-        seven = dict(five, flag_patterns_lines=2, flag_patterns_sha256="1" * 64)
-        self.assertTrue(yomiyasu_check._words_shape(five))
-        self.assertTrue(yomiyasu_check._words_shape(seven))
-        self.assertFalse(yomiyasu_check._words_shape(dict(five, flag_patterns_lines=2)))
-        self.assertFalse(yomiyasu_check._words_shape(dict(seven, flag_patterns_sha256=None)))
-        patterns_only = dict(seven, flag_sha256=None)
-        self.assertTrue(yomiyasu_check._words_shape(patterns_only))
-
-
 class HelpTest(unittest.TestCase):
     """--help の --words の説明が flag-patterns.txt を挙げ、終了コード2の行が使えない行を挙げる。"""
 
     def test_help_names_flag_patterns(self):
-        import yomiyasu_diff
-        import yomiyasu_hook
         exit_line = "flag-patterns.txt に使えない行がある。ファイルの中身の誤りは、ファイルの名前と行番号を出す"
         words_help = "用語リスト（allow.txt と flag.txt。名前と正規表現を書く flag-patterns.txt も置けます）のフォルダ"
         lint_help = "".join(yomiyasu_lint._build_parser().format_help().split())
-        diff_help = "".join(yomiyasu_diff._build_parser().format_help().split())
-        run_help = "".join(yomiyasu_check._build_parser()[1].format_help().split())
-        for name, text in (("lint", lint_help), ("diff", diff_help), ("check run", run_help)):
-            with self.subTest(command=name):
-                self.assertIn("".join(words_help.split()), text)
-                self.assertIn("".join(exit_line.split()), text)
+        self.assertIn("".join(words_help.split()), lint_help)
+        self.assertIn("".join(exit_line.split()), lint_help)
         self.assertIn("「名前<TAB>正規表現」を書き、当たった行に、パターンの名前を入れた", lint_help)
-        for module in (yomiyasu_lint, yomiyasu_diff, yomiyasu_check):
-            self.assertIn(exit_line, module._EXIT_CODES)
-        self.assertIn("用語リスト（allow.txt と flag.txt。flag-patterns.txt も置けます）のフォルダ", yomiyasu_hook._HELP)
+        self.assertIn(exit_line, yomiyasu_lint._EXIT_CODES)
 
 
 class LongLineTest(unittest.TestCase):

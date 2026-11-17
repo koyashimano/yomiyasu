@@ -6,5 +6,5 @@ __pycache__/
 .venv/
 venv/
 *.skill
-# yomiyasu_check.py の検査記録（フォルダの中に自動の .gitignore もある）
+# 3.1.0 までの yomiyasu_check.py が残した検査記録（フォルダの中に自動の .gitignore もある）
 .yomiyasu/

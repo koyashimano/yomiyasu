@@ -13,7 +13,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
-import yomiyasu_diff  # noqa: E402
 import yomiyasu_lint  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from portable import working_folder  # noqa: E402
@@ -316,24 +315,6 @@ class CommonTest(unittest.TestCase):
     def test_crlf_input(self):
         text = "".join(sentence + "\r\n" for sentence, _ in OWNER_SEEDS)
         self.assertEqual(sorted(rules_of(text)), sorted(rule for _, rule in OWNER_SEEDS))
-
-
-class SayHedgeDiffTest(unittest.TestCase):
-    def test_removing_to_ieru_is_not_a_meaning_risk(self):
-        """「〜につながったと言えるでしょう。」を「〜につながったでしょう。」にした組は、意味が変わる恐れ0件（指示書3章）。"""
-        pairs = (
-            ("この結果は、品質の向上につながったと言えるでしょう。\n", "この結果は、品質の向上につながったでしょう。\n"),
-            ("型を付けたことで、レビューで見落とす誤りは減ったと言えるでしょう。\n",
-             "型を付けたことで、レビューで見落とす誤りは減ったでしょう。\n"),
-            ("7月以降の増加は、定期便の開始が主な原因だったと言えるでしょう。\n",
-             "7月以降の増加は、定期便の開始が主な原因だったでしょう。\n"),
-        )
-        for original, rewrite in pairs:
-            with self.subTest(original=original):
-                result = yomiyasu_diff.diff(original, rewrite)
-                self.assertEqual(result["meaning_risks"], [])
-                self.assertEqual(result["meaning_risk_count"], 0)
-                self.assertEqual(yomiyasu_diff.meaning_risks(original, rewrite), [])
 
 
 if __name__ == "__main__":

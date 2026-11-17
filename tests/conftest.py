@@ -4,9 +4,9 @@ CI は試験を並列に動かす（pytest-xdist）。同時に動くほかの�
 `-m "not timing"` を並列に動かし、`-m timing` は別のジョブで1つずつ動かす。
 
 印を付けるのは、試験の本体が時計を使う試験と、時計を使う補助の関数（試験のクラスとその親クラスのメソッド、試験の
-ファイルの関数）を呼ぶ試験。時計は、性能の試験の時計と上限（tests/portable.py の timing_clock と paced_limit、
-test_v200_diff_full の CHILD_TIMER）と、time.perf_counter、time.process_time、time.monotonic。補助の関数が別の補助の
-関数を呼ぶときもたどる。ソースからは見分けられない試験は、名前で印を付ける（_TIMED_BY_NAME）。
+ファイルの関数）を呼ぶ試験。時計は、性能の試験の時計と上限（tests/portable.py の timing_clock と paced_limit）と、
+time.perf_counter、time.process_time、time.monotonic。補助の関数が別の補助の関数を呼ぶときもたどる。ソースからは
+見分けられない試験は、名前で印を付ける（_TIMED_BY_NAME）。
 
 `--part I/N` を付けると、選ばれた試験（-m や -k で絞ったあと）を集めた順に N 組へ1件ずつ配り、I 番目の組だけを流す。
 CI はこれで、時間を測らない試験を別々のジョブに分ける。手元でふつうに流すときは付けない。
@@ -24,20 +24,13 @@ from collections.abc import Callable, Iterator
 
 import pytest
 
-_CLOCKS = ("timing_clock", "paced_limit", "CHILD_TIMER", "perf_counter", "process_time", "monotonic(")
+_CLOCKS = ("timing_clock", "paced_limit", "perf_counter", "process_time", "monotonic(")
 
 
-# 試験の側では時計を読まないが、スクリプトの中の時間の予算に頼る試験（フックの SessionEnd の 0.8秒、子プロセスを並べたときの
-# ロックの待ち）。負荷がかかると予算を過ぎて落ちうるが、ソースに時計の名前がないので、名前で印を付ける。
+# 試験の側では時計を読まないが、スクリプトの中の時間の予算に頼る試験。負荷がかかると予算を過ぎて落ちうるが、ソースに
+# 時計の名前がないので、名前で印を付ける。今はそういう試験がない。
 # 書き方は「ファイル::クラス::試験」。tests/test_ci_parts.py が、ここの名前の試験があることと、timing に入ることを確かめる。
-_TIMED_BY_NAME = (
-    "test_v200_check_start.py::StartTests::test_h3_parallel_starts_keep_one_active_registration",
-    "test_v200_check_start.py::StartTests::test_h5_parallel_runs_reserve_attempt_before_checks",
-    "test_v200_hook.py::HookTests::test_h12_session_end_and_ended_exclusion",
-    "test_v200_hook.py::HookTests::test_h13_no_body_in_any_event_or_errors",
-    "test_v200_hook.py::HookTests::test_h15_parallel_stop_pretool_and_stale_lock",
-    "test_v200_hook.py::HookTests::test_state_candidates_and_partial_session_binding",
-)
+_TIMED_BY_NAME = ()
 
 _SOURCES: dict[int, tuple[object, str]] = {}
 

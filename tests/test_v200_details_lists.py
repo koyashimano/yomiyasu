@@ -26,10 +26,7 @@ from pathlib import Path
 import contextlib
 import io
 import json
-import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from unittest import mock
 
@@ -37,7 +34,6 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = ROOT / "scripts"
 CORPUS = ROOT / "tests" / "corpus"
-CHECK = SCRIPTS_DIR / "yomiyasu_check.py"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import yomiyasu_lint  # noqa: E402
@@ -347,26 +343,6 @@ class NoDetailsUnchangedTest(unittest.TestCase):
         for doc in (PR_DOC_OPEN, "", "本文です。\n", "<div>\n\n- 項目\n\n</div>\n"):
             with self.subTest(doc=doc[:20]):
                 self.assertEqual(list(lint(doc)["metrics"]), OLD_METRIC_KEYS)
-
-
-class CheckPassesLintTest(unittest.TestCase):
-    """check の lint の節も同じ（check は lint を子プロセスで動かす）。"""
-
-    def test_check_run_has_no_excess_list_for_details_lists(self):
-        with tempfile.TemporaryDirectory() as folder:
-            source, final = Path(folder) / "source.md", Path(folder) / "final.md"
-            source.write_bytes("## 変更の概要\n\n設定の読み込みを3か所から1か所にまとめます。\n".encode("utf-8"))
-            final.write_bytes(PR_DOC.encode("utf-8"))
-            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
-            env.pop("YOMIYASU_STATE_DIR", None)
-            process = subprocess.run(
-                [sys.executable, "-B", str(CHECK), "run", "--source", str(source), "--final", str(final),
-                 "--state-dir", str(Path(folder) / "state")],
-                cwd=folder, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
-            out = process.stdout.decode("utf-8")
-            self.assertEqual(process.returncode, 0, process.stderr.decode("utf-8", "replace"))
-            self.assertIn("lint（最終稿）候補0件", out)
-            self.assertNotIn("excess_list", out)
 
 
 if __name__ == "__main__":

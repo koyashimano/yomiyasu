@@ -1,21 +1,17 @@
 """v2.5.0: SKILL.md、references、README の文の決まり（1章、4章、5a、5b、5c、6章、8a）と、6章のコーパスの例文の期待。
 
 6章の例文（tests/corpus/edge_cases/edge_hitei_49〜51、edge_kango_52〜54）は、コーパスのほかの例文と同じく、期待をこの試験に書く。
-資料がある例は、資料の文だけで書き直した文を期待にし、check の資料との照合で資料にない数値と名前がないことを確かめる。
-資料がない例は、本文を残して書き手に尋ねる（期待の本文は原文と同じ）。
+資料がある例は、資料の文だけで書き直した文を期待にする。資料がない例は、本文を残して書き手に尋ねる（期待の本文は原文と同じ）。
 """
 from pathlib import Path
 import re
-import subprocess
 import sys
-import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "yomiyasu" / "SKILL.md"
 REFS = ROOT / "references"
 EDGE = ROOT / "tests" / "corpus" / "edge_cases"
-CHECK = ROOT / "scripts" / "yomiyasu_check.py"
 sys.path.insert(0, str(ROOT / "scripts"))
 import yomiyasu_lint  # noqa: E402
 
@@ -41,7 +37,7 @@ class SkillTextTest(unittest.TestCase):
         self.assertLess(body.index("### 実行するコマンド"), body.index("### Step 3:"))
         commands = section(body, "### 実行するコマンド")
         for word in ("`python3`、`python`、`py -3` の順番に試して", "command not found", "Python was not found",
-                     "`yomiyasu-check: not_run reason=no_python`", "${CLAUDE_SKILL_DIR}", "`cd`、`&&`"):
+                     "「なし（Python がないため lint を実行しなかった。観点を目で点検した）」", "${CLAUDE_SKILL_DIR}", "`cd`、`&&`"):
             with self.subTest(word=word):
                 self.assertIn(word, commands)
 
@@ -53,22 +49,16 @@ class SkillTextTest(unittest.TestCase):
         for line in calls:
             with self.subTest(line=line[:60]):
                 self.assertIn("${CLAUDE_SKILL_DIR}/scripts/", line)
-        for heading in ("### Step 2:", "### Step 3:", "### Step 5:"):
+        for heading in ("### Step 2:", "### Step 3:"):
             with self.subTest(heading=heading):
                 self.assertIn("「実行するコマンド」の節", section(self.skill, heading))
         self.assertNotIn("`python3` がなければ `python` か `py -3` で実行します。", self.skill)
         self.assertNotIn("`python3` がなければ `python` か `py -3` で実行する。", self.skill)
 
     def test_stdin_only_when_files_cannot_be_written(self):
-        step3 = section(self.skill, "### Step 3:")
-        only_when = "ファイルを書けないとき（ファイルに保存しないよう頼まれたときを含む）のみ `run --stdin` を使い"
-        self.assertIn(only_when, step3)
-        # 3.0.0 で標準入力の例の前の文から条件を外し（条件は上の文にある）、「標準入力では次のように渡します」にした。
-        # 条件の文のあとに例の前置きがあり、そのあとに標準入力の run の例があることを見る
-        intro = "標準入力では次のように渡す"
-        self.assertIn(intro, step3)
-        self.assertLess(step3.index(only_when), step3.index(intro))
-        self.assertLess(step3.index(intro), step3.index("yomiyasu_check.py run --stdin --fact-gaps"))
+        # 3.1.0 の後で check を削除し、標準入力は lint にファイル名の代わりに - を渡す形にした
+        commands = section(self.skill, "### 実行するコマンド")
+        self.assertIn("ファイルに保存しないよう頼まれたときは、ファイル名の代わりに `-` を渡し、本文を標準入力から渡す", commands)
         for code in re.findall(r"```bash\n(.*?)```", self.skill, re.S):
             # 置き換える値の <…>、標準入力の区切りの <<<…>>>、heredoc の <<'…' を除いてから、cd、&&、出力のリダイレクトを探す
             plain = re.sub(r"<<<[a-z:]+>>>|<<'[A-Z_]+'|<[^<>\n]*>", "", code)
@@ -101,7 +91,7 @@ class SkillTextTest(unittest.TestCase):
             with self.subTest(catalog=word):
                 self.assertIn(word, row[0])
 
-    def test_chapter6_paragraphs_keep_the_rephrase_test(self):
+    def test_chapter6_paragraphs(self):
         negation = section(self.skill, "### セルフラベリングと否定対比の整理")
         # 3.0.0 で「〜ではありません」「〜を意味するわけではありません」で終わる説明の文を、「〜ではありません」だけで
         # 薄い用語の説明の文にまとめた
@@ -112,18 +102,15 @@ class SkillTextTest(unittest.TestCase):
         # 「〜を行う」はこの文に入った
         self.assertIn("「分離」「保証」「管理」のような漢語の名詞や「〜を行う」のみで動作を済ませた文は、"
                       "原文や資料に動作と条件があるときのみその文に書き直し、なければ残して尋ねる", nouns)
-        # 3.0.0 で節ごとの「言い直しテストの6点は変えません」を外し、Step 2 の項目3で、直すすべての案に言い直しテストを
-        # 当てる文にした
-        step2 = section(self.skill, "### Step 2:")
-        self.assertIn("修正する前に案を1つ書き、原文と6点を比べる（言い直しテスト）", step2)
-        self.assertIn("1つでも変わる案は捨てて原文を残し", step2)
-        self.assertIn("（例は `references/rephrase-test.md`）", step2)
+        # 3.1.0 の後で言い直しテストを削除した（意味の保持は1章「意味の保持」の規則として残る）
+        self.assertNotIn("言い直しテスト", self.skill)
+        self.assertNotIn("rephrase-test.md", self.skill)
         # 「語を同じ意味の別の漢語に替えるだけでは済ませません」は 3.0.0 で字数のため外した（docs/limitations.md の、3.0.0 の SKILL.md に入れていない決まりの一覧）
 
     def test_chapter8a_paragraph_and_step5(self):
         commas = section(self.skill, "### 文長と読点の調整")
         # 3.0.0 で、推敲で新しく置く読点を残す読点に限る文は、この節の「間を作るだけの読点は外し、新しく足しません」と、
-        # Step 5 の「増えた読点が残す読点に当たらなければ外す」に分かれた
+        # Step 5 の「増えた読点が残す読点に当たらなければ外す」に分かれた（3.1.0 の後で Step 5 は Step 3 に入った）
         self.assertIn("短い目的語の「を」のすぐ後で間を作るのみの読点は除き、新しく追加しない", commas)
         self.assertIn("除くのは読点のみで、語順と述語は変えない", commas)
         # 「6字以内の短い目的語の「を、」も候補に出ます」（lint の pause_comma の候補の説明）は 3.0.0 で SKILL.md から外した。
@@ -136,7 +123,7 @@ class SkillTextTest(unittest.TestCase):
         self.assertNotIn("（「を、」は候補に出ません）", self.skill)
         self.assertNotIn("（「を、」は候補に出ない）", self.skill)
         self.assertIn("原文と最終稿で地の文の読点の数を比べ、増えた読点が「文長と読点の調整」の残す読点に当たらなければ除く",
-                      section(self.skill, "### Step 5:"))
+                      section(self.skill, "### Step 3:"))
 
     def test_chapter5a_sentence_and_references(self):
         # 3.0.0 で、依頼で指定された見出しの形とまとめの節を直さない文を、直さないものを並べた1文にした（「〜を指定された
@@ -208,7 +195,8 @@ class ReadmeTextTest(unittest.TestCase):
         part = section(readme, "### 承認する人がいない実行で使うとき")
         self.assertIn("`--allowedTools`", part)
         self.assertIn("`permissions.allow`", part)
-        self.assertIn("Bash(python3 /path/to/yomiyasu/scripts/yomiyasu_check.py *)", part)
+        self.assertIn("Bash(python3 /path/to/yomiyasu/scripts/yomiyasu_lint.py *)", part)
+        self.assertNotIn("yomiyasu_check.py", part)
 
 
 # 6章の例文の期待（ファイル名: (本文, 資料か None, 期待の本文, 資料がないときに尋ねること)）
@@ -241,25 +229,6 @@ class ChapterSixCorpusTest(unittest.TestCase):
                 content = text(EDGE / (name + ".md"))
                 self.assertEqual(content, "# 境界値検証: {}\n\n{}\n".format(name, body))
                 self.assertEqual(yomiyasu_lint.lint_text(content)["candidate_count"], 0)
-
-    def test_rewrites_use_only_the_material(self):
-        for name, (body, material, expected, question) in CHAPTER6.items():
-            with self.subTest(name=name):
-                if material is None:
-                    self.assertEqual(expected, body)
-                    self.assertTrue(question)
-                    continue
-                self.assertIsNone(question)
-                with tempfile.TemporaryDirectory() as folder:
-                    folder = Path(folder)
-                    (folder / "src.md").write_bytes((body + "\n").encode("utf-8"))
-                    (folder / "final.md").write_bytes((expected + "\n").encode("utf-8"))
-                    (folder / "material.txt").write_bytes((material + "\n").encode("utf-8"))
-                    process = subprocess.run([sys.executable, "-B", str(CHECK), "run", "--no-record", "--source", "src.md",
-                                              "--final", "final.md", "--material", "material.txt"],
-                                             capture_output=True, text=True, encoding="utf-8", cwd=str(folder))
-                    self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
-                    self.assertIn("資料にない数値・名前0件", process.stdout.split("\n")[2])
 
 
 if __name__ == "__main__":

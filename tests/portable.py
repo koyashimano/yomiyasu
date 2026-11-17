@@ -5,18 +5,17 @@ yomiyasu のスクリプトは読み込まない（試験のファイルが impo
 - run_text: subprocess.run の text モード（encoding、errors、text）の代わり。text モードの標準入力は、Windows では
   「\\n」を「\\r\\n」に、「\\r\\n」を「\\r\\r\\n」にして子に渡すので、文字列の入力を改行を変えずにバイト列にして渡す。
   出力の読み方は text モードと同じ（POSIX で text モードを使ったときと同じ文字列になる）。
-- timing_clock、paced_limit: 子プロセスを使わない性能の試験の時計と上限。Windows では、test_v200_diff_full の性能の試験と
-  同じく、秒数の上限を、基準の処理（その CHILD_TIMER の pace）の遅さの比で延ばす（速い機械でも上限は縮めない）。POSIX では
-  延ばさず、2.1.2 までと同じ固定の上限で比べる。
+- timing_clock、paced_limit: 子プロセスを使わない性能の試験の時計と上限。Windows では、秒数の上限を、基準の処理（このファイルの
+  pace）の遅さの比で延ばす（速い機械でも上限は縮めない）。POSIX では延ばさず、2.1.2 までと同じ固定の上限で比べる。
 """
 
-from pathlib import Path
+from bisect import bisect_left
+from collections import Counter
+import difflib
 import re
 import subprocess
 import sys
 import time
-
-DIFF_FULL_TESTS = Path(__file__).resolve().parent / "test_v200_diff_full.py"
 
 
 def text_output(data, encoding="utf-8", errors="strict"):
@@ -40,25 +39,55 @@ def run_text(command, input=None, encoding="utf-8", errors="strict", **kwargs):
 
 def timing_clock():
     """性能の試験の時計。CPU 時間で測る（ほかのプロセスに CPU を譲って待った時間を入れない）。Windows の CPU 時間は
-    刻みが粗い（約16ミリ秒）ので、壁時計で測る（test_v200_diff_full の CHILD_TIMER と同じ）。"""
+    刻みが粗い（約16ミリ秒）ので、壁時計で測る。"""
     return time.perf_counter if sys.platform == "win32" else time.process_time
 
 
-_PACE = {}
+# pace の CPU 時間。Apple M5 Pro の Python 3.14.5 で、ほかの処理が少ないときに子プロセスで測った最小（0.059秒。v2.0.2）。
+# ほかの処理が多いときは 0.08〜0.10秒になる。pace の中身を変えたら測り直す
+PACE_SECONDS = 0.060
+
+# pace は yomiyasu を使わない、量の決まった計算。difflib の照合、正規表現で文と数を拾って数える処理、関数の呼び出しの多い
+# 走査、dict と二分探索を同じくらいずつ動かし、機械と Python の速さを測る
+PACE_OLD = "".join("第%d項の値は%d件です。" % (i, i * 7 % 1000) for i in range(100))
+PACE_NEW = "".join("第%d項の値は%d件でした。" % (i, i * 11 % 1000) for i in range(100))
+PACE_TEXT = "".join("設定ファイル%dの値は%d件です。担当者は%d番目の結果を残し、会議で共有します。" % (i, i * 3, i % 97)
+                    for i in range(1500))
+PACE_SENTENCE = re.compile(r"[^。]*。")
+PACE_NUMBER = re.compile(r"[0-9]+(?P<unit>件|番目)?")
+PACE_WORDS = ["語%d" % (i * 7919 % 5000) for i in range(30000)]
+
+
+class PaceRow(tuple):
+    __slots__ = ()
+    start = property(lambda self: self[1])
+
+
+PACE_ROWS = [PaceRow((i, i * 5, i * 5 + 5)) for i in range(1000)]
+
+
+def pace():
+    total = len(difflib.SequenceMatcher(None, PACE_OLD, PACE_NEW, autojunk=False).get_opcodes())
+    for _ in range(6):
+        counts = Counter()
+        for sentence in PACE_SENTENCE.finditer(PACE_TEXT):
+            for number in PACE_NUMBER.finditer(sentence.group()):
+                counts[(number.group(), number.group("unit"))] += 1
+        total += len(counts)
+    for k in range(1000):
+        total += next(row for row in PACE_ROWS if row.start <= k * 5 + 2 < row[2])[0]
+    for _ in range(6):
+        seen = {}
+        for i, word in enumerate(PACE_WORDS):
+            seen.setdefault(word, []).append(i)
+        starts = sorted(len(places) * 100000 + k for k, places in enumerate(seen.values()))
+        total += sum(bisect_left(starts, x) for x in range(0, 30000, 3))
+    return total
 
 
 def _pace():
-    """test_v200_diff_full の PACE_SECONDS と pace（yomiyasu を使わない、量の決まった計算）を、そのファイルから読む。"""
-    if not _PACE:
-        source = DIFF_FULL_TESTS.read_text(encoding="utf-8")
-        seconds = float(re.search(r"^PACE_SECONDS = ([0-9.]+)$", source, re.M).group(1))
-        start = source.index("# pace は yomiyasu を使わない")
-        end = source.index("\ndef sample(", start)
-        namespace = {}
-        exec(compile("import difflib\nimport re\nfrom bisect import bisect_left\nfrom collections import Counter\n"
-                     + source[start:end], "pace", "exec"), namespace)
-        _PACE.update(seconds=seconds, run=namespace["pace"])
-    return _PACE["seconds"], _PACE["run"]
+    """(PACE_SECONDS, pace)。試験で差し替えられるよう、関数を通して渡す。"""
+    return PACE_SECONDS, pace
 
 
 def pace_scale(rounds=3):
@@ -84,14 +113,14 @@ def paced_limit(limit, elapsed):
 
 
 def files_folder(*paths):
-    """3.0.0: lint、diff、check は、作業フォルダの外のファイルを読まない。試験で一時フォルダのファイルをコマンドに渡すときは、
+    """3.0.0: lint は、作業フォルダの外のファイルを読まない。試験で一時フォルダのファイルをコマンドに渡すときは、
     そのファイルのあるフォルダで子を動かす。渡したパスのフォルダに共通する、いちばん深いフォルダの本当の場所を返す。"""
     import os
     return os.path.commonpath([os.path.dirname(os.path.realpath(str(path))) for path in paths])
 
 
 class working_folder(object):
-    """3.0.0: lint、diff、check をプロセスの中で動かす試験で、渡すファイルのあるフォルダを作業フォルダにする（with の間だけ。
+    """3.0.0: lint をプロセスの中で動かす試験で、渡すファイルのあるフォルダを作業フォルダにする（with の間だけ。
     終わると元の作業フォルダに戻す。一時フォルダを消す前に戻るよう、with では一時フォルダのあとに書く）。"""
 
     def __init__(self, path):

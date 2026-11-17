@@ -299,31 +299,6 @@ class CommandLineTest(DocTypeCase):
         code, out, err = self.lint(path)
         self.assertNotIn("dialogue_period", out)
 
-    def test_diff_accepts_script(self):
-        before = self.write("before.md", script(10))
-        after = self.write("after.md", script(0))
-        code, out, err = self.diff("--json", "--doc-type", "script", before, after)
-        self.assertEqual((code, err), (0, ""))
-        self.assertEqual(json.loads(out)["context"], {"doc_type": "script", "reader": None})
-        code, out, err = self.diff("--doc-type", "script", before, after)
-        self.assertEqual((code, err), (0, ""))
-        self.assertIn("文書の種類: 台詞・脚本（script）", out)
-
-    def test_check_run_accepts_script(self):
-        before = self.write("before.md", script(10))
-        after = self.write("after.md", script(10))
-        code, out, err = self.check("run", "--source", before, "--final", after, "--doc-type", "script")
-        self.assertEqual((code, err), (0, ""))
-        lines = out.split("\n")
-        path, record = self.record(lines)
-        self.assertEqual(record["options"]["doc_type"], "script")
-        lint = json.loads((path.parent / "attempt-1.lint.json").read_text(encoding="utf-8"))
-        self.assertEqual(lint["context"]["doc_type"], "script")
-        self.assertEqual([f["rule"] for f in lint["findings"]].count("dialogue_period"), 1)
-        diff = json.loads((path.parent / "attempt-1.diff.json").read_text(encoding="utf-8"))
-        self.assertEqual(diff["context"], {"doc_type": "script", "reader": None})
-        self.assertIn("doc_type=script", next(line for line in lines if line.startswith("yomiyasu-check: ")))
-
     def test_bad_value_lists_script(self):
         path = self.write("a.md", "記録を確認した。\n")
         code, out, err = self.lint("--doc-type", "drama", path)

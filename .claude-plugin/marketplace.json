@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "yomiyasu",
-      "description": "AIが生成した日本語を、意味と条件を保って読みやすく整えるスキル",
+      "description": "AIが生成した日本語を読みやすく整えるスキル",
       "version": "3.1.0",
       "author": {
         "name": "nanaism"

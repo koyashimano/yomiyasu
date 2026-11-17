@@ -760,7 +760,7 @@ def range_overlaps_protected(analysis: dict, start: int, end: int, protected_kin
 
 
 def decode_source(data: str | bytes | bytearray) -> tuple[str, dict]:
-    """入力のバイト列を、検査に使う文字列にする。lint、diff、check で同じ読み方にするための関数。
+    """入力のバイト列を、検査に使う文字列にする。lint で使う読み方の関数。
 
     UTF-8 として厳密に解き（読めなければ UnicodeDecodeError）、先頭の BOM を1つ外し、
     CRLF と CR を LF にそろえる。戻り値は (文字列, 情報) の組。情報は
@@ -790,7 +790,7 @@ def decode_source(data: str | bytes | bytearray) -> tuple[str, dict]:
 
 
 # ---- 文書の種類と読者 ----
-# lint、diff、check の3本が同じ値と名前を使うので、ここに1つだけ置く（ほかは import する）。
+# lint が使う値と名前をここに置く（lint は import する）。
 # 公開の名前として読むだけにし、書き換えて使う使い方は約束しない。
 
 # (値, 名前, あわせて読む domains のファイル)。順は種類の表のとおり（formal と promo、2.2.0 の script は、あとから足した）
@@ -844,7 +844,7 @@ def normalize_reader(value: object) -> str | None:
 
 
 def context_label(doc_type: object, reader: object) -> str:
-    """lint と diff の人が読む出力で、種類と読者を書く行の初めの部分（「文書の種類: スライド（slides）、読者: 指定なし。」）。"""
+    """lint の人が読む出力で、種類と読者を書く行の初めの部分（「文書の種類: スライド（slides）、読者: 指定なし。」）。"""
     doc_type, reader = normalize_doc_type(doc_type), normalize_reader(reader)
     kinds, readers = dict(row[:2] for row in DOC_TYPES), dict(READER_LEVELS)
     return "文書の種類: {}、読者: {}。".format(
@@ -853,7 +853,7 @@ def context_label(doc_type: object, reader: object) -> str:
 
 
 # ---- 用語リスト（.yomiyasu-words/ の allow.txt と flag.txt）----
-# lint、diff、check、フックの4本が同じ探し方と読み方を使うので、ここに1つだけ置く。
+# lint が使う探し方と読み方をここに置く。
 # .git まで上へたどり、linked worktree に一覧がなければ元の checkout を探す。.yomiyasu/ の中は探さない。
 
 WORDS_FOLDER = ".yomiyasu-words"
@@ -882,7 +882,7 @@ class WordsError(Exception):
 
 
 def _words_home(value: str) -> str:
-    """--words の値の頭の ~ を、ホームフォルダに置き換える（check と hook の _home_path と同じ決まり）。"""
+    """--words の値の頭の ~ を、ホームフォルダに置き換える。"""
     if isinstance(value, str) and (value == "~" or value[:2] in ("~/", "~" + os.sep)):
         try:
             configured = (os.environ.get("USERPROFILE", os.environ.get("HOMEDRIVE", "") + os.environ.get("HOMEPATH", ""))
@@ -1333,10 +1333,10 @@ def current_directory() -> str | None:
 
 
 # ---- コマンドラインで渡されたファイルを読む範囲（3.0.0）----
-# lint、diff、check の3本は、コマンドラインで名前を渡されたファイルのうち、作業フォルダの中で、作業フォルダからの道筋に
+# lint は、コマンドラインで名前を渡されたファイルのうち、作業フォルダの中で、作業フォルダからの道筋に
 # 点で始まる部分（.env、.git/、sub/.secret/ など）がないものだけを読む。編集中の文書に紛れ込んだ指示で、事前に許された
 # コマンドが鍵や認証のファイルを読んで中身を出さないようにするため。標準入力（-）はいつでも読める。道具が自分で探すフォルダ
-# （状態フォルダ .yomiyasu/、用語リスト .yomiyasu-words/、references/lists/）と --words のフォルダは、ここでは見ない。
+# （用語リスト .yomiyasu-words/、references/lists/）と --words のフォルダは、ここでは見ない。
 # 用語リストを探すときは、linked worktree の .git ファイルと、git フォルダの commondir、config、config.worktree も読む
 # （_worktree_words_folder）。
 
@@ -1410,7 +1410,7 @@ def _parts_inside(base: str, target: str) -> list[str] | None:
 
 
 def words_context(words: dict) -> dict:
-    """JSON の context.words と check の記録の options.words に入れる5つのキー（この順）。flag-patterns.txt があるときだけ、
+    """JSON の context.words に入れる5つのキー（この順）。flag-patterns.txt があるときだけ、
     そのあとに flag_patterns_lines と flag_patterns_sha256 を足して7つにする。"""
     context = {"path": words["path"], "allow_lines": words["allow_lines"], "flag_lines": words["flag_lines"],
                "allow_sha256": words["allow_sha256"], "flag_sha256": words["flag_sha256"]}

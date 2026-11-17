@@ -1,10 +1,8 @@
-"""v2.4.0: lint と diff をスクリプトとして動かしても、スキルのフォルダに __pycache__ を作らない。
+"""v2.4.0: lint をスクリプトとして動かしても、スキルのフォルダに __pycache__ を作らない。
 
-check は冒頭で sys.dont_write_bytecode を真にする（tests/test_v200_check.py の test_k33_no_pycache_in_the_skill_scripts）。
-lint と diff も、スクリプトとして動かしたときは markdown_visibility を読み込む前に真にする。確かめるため、この試験だけ
--B を付けずに、一時フォルダに写したスキルのフォルダで動かす（リポジトリの scripts には書かない）。
+lint は、スクリプトとして動かしたときは markdown_visibility を読み込む前に sys.dont_write_bytecode を真にする。確かめるため、
+この試験では -B を付けずに、一時フォルダにコピーしたスキルのフォルダで動かす（リポジトリの scripts には書かない）。
 .pyc の置き場所（PYTHONPYCACHEPREFIX）を決めないときと、一時フォルダの中に向けたときの両方で見る。
-diff は絵文字のある文で lint の絵文字の数え方を読み込むので、diff から読む yomiyasu_lint.py の .pyc も見る。
 文はすべて合成の文。
 """
 from pathlib import Path
@@ -20,8 +18,7 @@ from portable import run_text  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "yomiyasu"
-TOOL_STEMS = ("yomiyasu_check.", "yomiyasu_lint.", "yomiyasu_diff.", "yomiyasu_hook.", "markdown_visibility.")
-BEFORE = "設定の保存期間は3日です✅\n手順は次のとおりです。\n"
+TOOL_STEMS = ("yomiyasu_lint.", "markdown_visibility.")
 AFTER = "設定の保存期間は30日です✅\n手順は、次のとおりです。\n"
 
 
@@ -31,33 +28,25 @@ class NoPycacheTest(unittest.TestCase):
         self.addCleanup(folder.cleanup)
         self.root = Path(os.path.realpath(folder.name))
         self.skill = self.root / "skill"
-        shutil.copytree(str(SKILL), str(self.skill),
-                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".yomiyasu"))
+        shutil.copytree(str(SKILL), str(self.skill), ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         self.scripts = self.skill / "scripts"
-        self.before = self.root / "before.md"
         self.after = self.root / "after.md"
-        self.before.write_bytes(BEFORE.encode("utf-8"))
         self.after.write_bytes(AFTER.encode("utf-8"))
 
     def env(self, prefix=None):
         env = dict(os.environ)
-        for name in ("PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX", "YOMIYASU_STATE_DIR"):
+        for name in ("PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX"):
             env.pop(name, None)
-        env["YOMIYASU_STATE_DIR"] = str(self.root / ".yomiyasu")
         if prefix is not None:
             env["PYTHONPYCACHEPREFIX"] = str(prefix)
         return env
 
     def run_tools(self, env):
         lint = str(self.scripts / "yomiyasu_lint.py")
-        diff = str(self.scripts / "yomiyasu_diff.py")
         runs = (
             ([lint, str(self.after)], None, 0),
             ([lint, str(self.after), "--json"], None, 0),
             ([lint, "-"], AFTER, 0),
-            ([diff, str(self.before), str(self.after)], None, 0),
-            ([diff, str(self.before), str(self.after), "--json"], None, 0),
-            ([diff, "--version"], None, 0),
             ([lint, "--version"], None, 0),
         )
         for args, stdin, code in runs:
@@ -89,13 +78,11 @@ class NoPycacheTest(unittest.TestCase):
         probe = ("import sys\n"
                  "sys.path.insert(0, sys.argv[1])\n"
                  "import yomiyasu_lint\n"
-                 "print('lint', sys.dont_write_bytecode)\n"
-                 "import yomiyasu_diff\n"
-                 "print('diff', sys.dont_write_bytecode)\n")
+                 "print('lint', sys.dont_write_bytecode)\n")
         process = subprocess.run([sys.executable, "-c", probe, str(self.scripts)], cwd=str(self.root),
                                  env=self.env(), capture_output=True, encoding="utf-8", timeout=120)
         self.assertEqual(process.returncode, 0, process.stderr)
-        self.assertEqual(process.stdout.splitlines(), ["lint False", "diff False"])
+        self.assertEqual(process.stdout.splitlines(), ["lint False"])
 
 
 if __name__ == "__main__":

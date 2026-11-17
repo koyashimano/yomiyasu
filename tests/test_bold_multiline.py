@@ -9,7 +9,6 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import yomiyasu_lint
-import yomiyasu_diff
 
 
 class TestBoldMultiline(unittest.TestCase):
@@ -22,9 +21,6 @@ class TestBoldMultiline(unittest.TestCase):
         problems = yomiyasu_lint.bold_problems(text)
         self.assertEqual(problems, [], f"Issue #2 should not produce findings, but got: {problems}")
 
-        diff_problems = yomiyasu_diff.bold_problems(text)
-        self.assertEqual(diff_problems, [], f"yomiyasu_diff should also not produce findings, but got: {diff_problems}")
-
     def test_issue2_comment_even_delimiters(self):
         """Issue #2 投稿者追加コメントの再現例:
         1行内の ** の個数が偶数でも、2つの複数行太字が行2で交差するケース。
@@ -33,9 +29,6 @@ class TestBoldMultiline(unittest.TestCase):
         text = "**太字は1行目から始まり、\n2行目で閉じる。** 続きの文では**次の太字が始まり、\n3行目で閉じる。**"
         problems = yomiyasu_lint.bold_problems(text)
         self.assertEqual(problems, [], f"Issue #2 comment example should not produce findings, got: {problems}")
-
-        diff_problems = yomiyasu_diff.bold_problems(text)
-        self.assertEqual(diff_problems, [], f"yomiyasu_diff should also not produce findings, got: {diff_problems}")
 
     def test_normal_multiline_bold_3lines(self):
         """正常な3行にまたがる太字: 誤検出してはならない"""
@@ -145,7 +138,6 @@ class TestBoldMultiline(unittest.TestCase):
         """内側空白の検出（8d5abeeからの退行防止）:
         ** 重要 **, 次は**重要 **です, 次は** 重要**です
         がそれぞれ1件検出され、「太字の内側の空白を取る」案が出ること。
-        yomiyasu_lint と yomiyasu_diff の両方で検証する。
         """
         cases = [
             ("** 重要 **", "**重要**"),
@@ -159,12 +151,6 @@ class TestBoldMultiline(unittest.TestCase):
             self.assertEqual(probs_lint[0]["how"], "太字の内側の空白を取る")
             self.assertEqual(probs_lint[0]["suggest"], expected_suggest)
 
-            # yomiyasu_diff
-            probs_diff = yomiyasu_diff.bold_problems(src)
-            self.assertEqual(len(probs_diff), 1, f"yomiyasu_diff should detect 1 problem in {repr(src)}, got {probs_diff}")
-            self.assertEqual(probs_diff[0]["how"], "太字の内側の空白を取る")
-            self.assertEqual(probs_diff[0]["suggest"], expected_suggest)
-
     def test_inner_whitespace_multiline(self):
         """複数行にまたがる内側空白の太字も正しく検出されること"""
         text = "** 重要\n重要 **"
@@ -172,14 +158,6 @@ class TestBoldMultiline(unittest.TestCase):
         self.assertEqual(len(probs), 1)
         self.assertEqual(probs[0]["how"], "太字の内側の空白を取る")
         self.assertIn("**重要\n重要**", probs[0]["suggest"])
-
-    def test_bold_head_message(self):
-        """CLI出力見出し（bold_head）に『案のとおりに直す』が含まれず、
-        表示可否と案の範囲の確認を促す安全な指示になっていること。
-        """
-        head = yomiyasu_diff.bold_head()
-        self.assertNotIn("案のとおりに直す", head)
-        self.assertIn("表示可否と案の範囲を確認して直す", head)
 
     def test_regression_matrix_all_cases(self):
         """リポジトリ内 fixture (tests/fixtures/bold_regressions.json) の全50ケースの検証:
@@ -201,17 +179,6 @@ class TestBoldMultiline(unittest.TestCase):
             expected_lines = x.get("expected_line_numbers", [])
 
             lint_probs = yomiyasu_lint.bold_problems(text)
-            diff_probs = yomiyasu_diff.bold_problems(text)
-
-            # lint と diff の結果が完全に一致すること
-            self.assertEqual(
-                len(lint_probs), len(diff_probs),
-                f"[{case_id}] lint vs diff count mismatch: lint={len(lint_probs)}, diff={len(diff_probs)}"
-            )
-            self.assertEqual(
-                lint_probs, diff_probs,
-                f"[{case_id}] lint vs diff findings mismatch"
-            )
 
             if exp is not None:
                 self.assertEqual(

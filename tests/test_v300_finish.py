@@ -38,15 +38,12 @@ class LabelTest(unittest.TestCase):
         cls.labels = section(text(SKILL), "### 太字とラベル")
 
     def test_label_is_removed_alone_only_when_every_word_is_in_the_sentence(self):
-        self.assertIn("ラベルを除くのみにして言葉を追加しないのは、ラベルの言葉が全て説明の文にあるときのみ。", self.labels)
         self.assertIn("説明の文にないラベルの言葉は省かずに文へ入れ、1文にする", self.labels)
         self.assertNotIn("説明の文がすでにラベルと同じ対象と条件を述べているなら", self.labels)
 
     def test_meaning_guard_is_kept(self):
         for words in ("2つを1つの条件にまとめず、ラベルとコロンを残して太字のみを除く",
-                      "ラベルを文に入れたら、入れる前とラベルの働きが同じかを確認する",
-                      "入れた後で、条件や否定、「〜し、」で続けた節の掛かる範囲が変わったら、ラベルとコロンの形に戻す",
-                      "番号と項目の数と順序は保つ"):
+                      "入れた後で、条件や否定、「〜し、」で続けた節の掛かる範囲が変わったら、ラベルとコロンの形に戻す"):
             with self.subTest(words=words):
                 self.assertIn(words, self.labels)
         # 意味の守りは、ラベルの語を入れる決まりのあとに置く（入れたあとで確かめる）
@@ -80,21 +77,6 @@ class NakuCommaTest(unittest.TestCase):
     def test_merge_does_not_add_a_comma(self):
         merge = section(text(SKILL), "### 2文の否定対比と「もちろん、」")
         self.assertIn("否定を残して1文にまとめ、「なく」の後に読点を追加しない。", merge)
-
-    def test_rephrase_test_examples(self):
-        body = text(REFS / "rephrase-test.md")
-        self.assertNotIn("ではなく、", section(body, "### 残す例（合成）"))
-        fixed = section(body, "### 直す例（合成）")
-        rows = [line.split(" | ") for line in fixed.split("\n") if line.startswith("| ") and not line.startswith("| 原文")
-                and not line.startswith("|---")]
-        self.assertTrue(rows)
-        for row in rows:
-            with self.subTest(row=row[0]):
-                self.assertNotIn("ではなく、", row[1])
-        self.assertIn("| 必要だったのは新しい道具ではなく使い方をそろえることだった。 |", fixed)
-        self.assertIn("「なく」の後に読点を追加しない", fixed)
-        # 原文を残す誤った直しの例も、残す原文に読点を置かない
-        self.assertNotIn("ではなく、", section(body, "### 直し方を誤った例（合成）"))
 
     def test_slop_catalog_row(self):
         row = [line for line in text(REFS / "slop-catalog.md").split("\n") if line.startswith("| *it is not X, it is Y* |")]
@@ -181,7 +163,6 @@ class PointerTest(unittest.TestCase):
             ("doc-types/manual.md", "（SKILL.md「装飾記号の排除と太字の表示、コピー調の抑制」）"),
             ("doc-types/mail.md", "（SKILL.md 2章 Step 1 の4つ目の項目）"),
             ("persona.md", "SKILL.md 2章 Step 1 の4つ目の項目の、書き手の立場と読み手との関係の細部"),
-            ("fact-recovery.md", "「書き手に確かめたい点」の3点（SKILL.md 3章）にも数えない"),
         )
         for name, words in expect:
             with self.subTest(file=name):

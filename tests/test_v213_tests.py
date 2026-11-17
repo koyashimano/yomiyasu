@@ -4,9 +4,7 @@
   Path.write_text、open(..., "w") は、Windows では「\\n」を「\\r\\n」に、「\\r\\n」を「\\r\\r\\n」にする。
   text モードで出力を読むときと read_text は、ロケールによらないよう encoding を書く（Windows の既定は UTF-8 でない）。
   この決まりは tests/ のソースを構文木で調べて見張る（macOS と Linux の CI でも、決まりを破れば落ちる）。
-- POSIX の権限ビットの確かめは、Windows では行わない（check とフックは POSIX のときだけ chmod する）。
-- 開いているファイルへの os.replace は、Windows では PermissionError になる。O_EXCL で作ったあとの片付けの試験は、
-  置き直す前にファイルを閉じる。Windows の動きは os.replace を差し替えて再現する。
+- POSIX の権限ビットの確かめは、Windows では行わない。
 - 子プロセスを使わない性能の試験の上限は、Windows の遅い機械では基準の処理の遅さの比で延ばす（portable.paced_limit）。
   POSIX では延ばさない。
 
@@ -15,20 +13,13 @@
 from pathlib import Path
 from unittest import mock
 import ast
-import importlib.util
-import ntpath
-import os
-import re
 import subprocess
 import sys
-import tempfile
 import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTS = ROOT / "tests"
-CHECK = ROOT / "scripts" / "yomiyasu_check.py"
-HOOK = ROOT / "scripts" / "yomiyasu_hook.py"
 sys.path.insert(0, str(TESTS))
 import portable  # noqa: E402
 
@@ -38,17 +29,6 @@ SUBPROCESS_CALLS = ("subprocess.run", "subprocess.Popen", "subprocess.check_outp
 # 子の標準入力と標準出力をそのまま写す、試験の子のプログラム
 ECHO_STDIN = "import sys\ndata = sys.stdin.buffer.read()\nsys.stdout.buffer.write(data)\nsys.stdout.buffer.flush()\n"
 WRITE_BYTES = "import sys\nsys.stdout.buffer.write(bytes.fromhex(sys.argv[1]))\nsys.stdout.buffer.flush()\n"
-
-
-def load(path, name):
-    before = sys.dont_write_bytecode
-    try:
-        spec = importlib.util.spec_from_file_location(name, str(path))
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-    finally:
-        sys.dont_write_bytecode = before
-    return module
 
 
 def read_test_sources():
@@ -260,11 +240,10 @@ class PacedLimitTest(unittest.TestCase):
         with mock.patch.object(portable, "_pace", return_value=(10.0, lambda: None)):
             self.assertEqual(portable.pace_scale(), 1.0)
 
-    def test_pace_is_read_from_the_diff_tests(self):
-        """pace と PACE_SECONDS は test_v200_diff_full から読む（片方だけを変えないように）。"""
-        source = (TESTS / "test_v200_diff_full.py").read_bytes().decode("utf-8")
+    def test_pace_runs(self):
+        """pace は量の決まった計算で、整数を返す。pace_scale は1より小さくならない。"""
         seconds, run = portable._pace()
-        self.assertEqual(seconds, float(re.search(r"^PACE_SECONDS = ([0-9.]+)$", source, re.M).group(1)))
+        self.assertEqual(seconds, portable.PACE_SECONDS)
         self.assertIsInstance(run(), int)
         self.assertGreaterEqual(portable.pace_scale(rounds=1), 1.0)
 
@@ -273,82 +252,6 @@ class PacedLimitTest(unittest.TestCase):
             self.assertIs(portable.timing_clock(), time.perf_counter)
         with mock.patch.object(portable.sys, "platform", "linux"):
             self.assertIs(portable.timing_clock(), time.process_time)
-
-
-class ReplaceOpenFileTest(unittest.TestCase):
-    """O_EXCL で作ったあとに書けなかったときの片付けを、Windows の os.replace（開いているファイルへの置き直しを
-    PermissionError にする）で確かめる。test_v200_state_gitignore の TestPlaceNewFile と同じ形。"""
-
-    def setUp(self):
-        folder = tempfile.TemporaryDirectory(prefix="yomiyasu-v213-tests-")
-        self.addCleanup(folder.cleanup)
-        self.folder = Path(folder.name)
-        self.check = load(CHECK, "_yomiyasu_check_v213_tests")
-
-    def scenario(self, close_first):
-        check, folder = self.check, self.folder
-        path = folder / ("target-" + str(close_first))
-        real_link, real_fdopen = check.os.link, check.os.fdopen
-        opened = []
-
-        def windows_replace(source, target):
-            if any(not stream.closed for stream in opened):
-                raise PermissionError(13, "別のプロセスが使用中のため、アクセスできません")
-            os.replace(source, target)
-
-        def no_link(src, dst, *args, **kwargs):
-            raise OSError(1, "リンクを作れない")
-
-        def failing_fdopen(handle, mode="r", *args, **kwargs):
-            stream = real_fdopen(handle, mode, *args, **kwargs)
-            if mode == "wb" and os.path.lexists(str(path)) and os.path.getsize(str(path)) == 0:
-                opened.append(stream)
-                if close_first:
-                    stream.close()
-                other = folder / "other.tmp"
-                other.write_bytes(b"other\n")
-                try:
-                    windows_replace(str(other), str(path))
-                finally:
-                    stream.close()
-                raise OSError(28, "試験で起こした書き込みの失敗")
-            return stream
-
-        check.os.link, check.os.fdopen = no_link, failing_fdopen
-        try:
-            with self.assertRaises(OSError) as caught:
-                check._place_new_file(str(path), b"data\n")
-        finally:
-            check.os.link, check.os.fdopen = real_link, real_fdopen
-        return path, caught.exception
-
-    def test_closing_before_replace_keeps_the_other_file(self):
-        path, error = self.scenario(close_first=True)
-        self.assertEqual(error.errno, 28)
-        self.assertEqual(path.read_bytes(), b"other\n")
-
-    def test_replacing_an_open_file_fails_on_windows(self):
-        """閉じる前に置き直すと、Windows では置き直しが起きず、作ったファイルが消える（2.1.2 の試験の落ち方）。"""
-        path, error = self.scenario(close_first=False)
-        self.assertIsInstance(error, PermissionError)
-        self.assertFalse(os.path.lexists(str(path)))
-
-
-class HomePathCompareTest(unittest.TestCase):
-    """Windows の「~/state」は「C:\\...\\me/state」になる。区切りが違っても同じ場所なので、両方を normpath して比べる。"""
-
-    def test_windows_shape(self) -> None:
-        check = load(CHECK, "_yomiyasu_check_v213_tests_home")
-        hook = load(HOOK, "_yomiyasu_hook_v213_tests_home")
-        profile = "C:\\Users\\試験"
-        with mock.patch.dict(os.environ, {"USERPROFILE": profile}), \
-                mock.patch("os.sep", "\\"), mock.patch.object(Path, "home", lambda: ntpath.expanduser("~")):
-            for value, parts in (("~/state", ("state",)), ("~/a/b", ("a", "b")), ("~//state", ("state",))):
-                with self.subTest(value=value):
-                    result = check._home_path(value)
-                    self.assertEqual(hook._home_path(value), result)
-                    self.assertEqual(ntpath.normpath(result), ntpath.normpath(ntpath.join(profile, *parts)))
-            self.assertNotEqual(check._home_path("~/state"), ntpath.join(profile, "state"))
 
 
 if __name__ == "__main__":

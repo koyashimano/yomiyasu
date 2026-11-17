@@ -135,7 +135,7 @@ def collected(*arguments):
 class HookTest(unittest.TestCase):
     """conftest.py のフックそのものを、pytest に集めさせて確かめる（流さない）。"""
 
-    FILES = ("tests/test_ci_parts.py", "tests/test_v200_check_start.py", "tests/test_v200_hook.py")
+    FILES = ("tests/test_ci_parts.py", "tests/test_exact_scan_optimizations.py", "tests/test_v213_tests.py")
 
     def test_parts_cover_the_selected_tests_exactly_once(self):
         whole = collected("-m", "not timing", *self.FILES)
