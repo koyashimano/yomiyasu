@@ -602,7 +602,7 @@ class OptionTest(DocTypeCase):
 
     def test_d8_versions_do_not_change(self):
         """D8: --version と形式の版は変えない（9.7）。"""
-        self.assertEqual(call(yomiyasu_lint.main, ["--version"])[1], "yomiyasu_lint.py 3.1.0 (JSON format 2)\n")
+        self.assertEqual(call(yomiyasu_lint.main, ["--version"])[1], "yomiyasu_lint.py 3.2.0 (JSON format 2)\n")
 
 
 # ---- E. 速さ ----
