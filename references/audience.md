@@ -167,7 +167,7 @@ SKILL.md 1章の規則のうち適用しない範囲は、種類ごとの `refer
 
 - lint は除外した候補の件数のみを出す。中身は `--doc-type` を付けずに実行すると見られる。
 - bold_not_rendered（表示されない太字）と metaphor_verb は、どの種類でも除外しない。fragment_run（「速い。軽い。安い。」の型）は promo と script のときのみ除外する。
-- pause_comma（短い主語や主題、目的語のすぐ後の読点）は、種類を指定したときのみ出す規則で、promo と script では出さない。
+- pause_comma（短い主語や主題、目的語のすぐ後の読点）は、3.3.0 から種類を指定しないときも出る。promo と script では出さない。
 - dialogue_period（台詞の最後の句点）は script のときのみ、narrative_density（読み物の一人称と数字）は essay のときのみ、slide_comma（見出しと1行の箇条の、間を作るだけの読点）は slides のときのみ出す。種類を指定しないときと他の種類では出さない。
 
 ## 14. 例（合成）

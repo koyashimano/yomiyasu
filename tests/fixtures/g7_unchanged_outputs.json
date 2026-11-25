@@ -1,10 +1,10 @@
 {
   "description": "指定しない（--doc-type と --reader を付けない）ときの lint の出力の要約。tests/test_v200_doc_type.py の UnchangedOutputTest が今の出力と照らす（種類と読者を指定しない利用者の出力を、知らないうちに変えないための見張り）。lint の行は種類と読者のオプション（--doc-type と --reader）を入れる前の作業ツリー（45a5885 に check の固めを入れたもの）の出力で、作り直していない（指定しないときの lint の出力が、そのオプションを入れる前と1字も違わないことを見る）。行の出どころは generated_by、source_commit、source_sha256 の lint。値は、終了コード、標準出力、標準エラー（JSON は context を除いたもの）をつないだ SHA-256 の先頭16字。今の版の文字列が tool_version の値と違うときは、tool_version の値に読み替えてから数える。",
   "generated_by": {
-    "lint": "種類と読者のオプション（--doc-type と --reader）を入れる前に tests/test_v200_doc_type.py の unchanged_lint() で作った値。作り直していない（作り直すたびに、今の unchanged_lint() と1字も違わないことを確かめる）。ただし 2.2.0 で、新しい info の規則（直訳語の calque）の候補が出る raw_ai/01_tech_arch_sonnet_casual.md の1本だけは、その5通り（plain、strict、fail_error、json、stdin）を unchanged_lint() で作り直した（updates）"
+    "lint": "種類と読者のオプション（--doc-type と --reader）を入れる前に tests/test_v200_doc_type.py の unchanged_lint() で作った値。作り直していない（作り直すたびに、今の unchanged_lint() と1字も違わないことを確かめる）。ただし 2.2.0 で、新しい info の規則（直訳語の calque）の候補が出る raw_ai/01_tech_arch_sonnet_casual.md の1本だけは、その5通り（plain、strict、fail_error、json、stdin）を unchanged_lint() で作り直した（updates）。3.3.0 で pause_comma を種類なしでも当てるようにしたので、候補が変わる70本の5通り（plain、strict、fail_error、json、stdin）を unchanged_lint() で作り直した（updates）"
   },
   "source_commit": {
-    "lint": "45a5885（scripts に未コミットの変更あり: check の固め）。raw_ai/01_tech_arch_sonnet_casual.md の行だけは 2.2.0 の規則を入れた作業ツリー"
+    "lint": "45a5885（scripts に未コミットの変更あり: check の固め）。raw_ai/01_tech_arch_sonnet_casual.md の行だけは 2.2.0 の規則を入れた作業ツリー。3.3.0 で作り直した70本の行は、pause_comma を種類なしでも当てるようにした作業ツリー"
   },
   "source_sha256": {
     "lint": {
@@ -30,11 +30,11 @@
       "stdin": "10fa74b964043101"
     },
     "blacklist_ai/01_tech_arch_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "85b66b6945769e07",
-      "stdin": "10fa74b964043101"
+      "plain": "0cc70603b38fa6e9",
+      "strict": "0cc70603b38fa6e9",
+      "fail_error": "0cc70603b38fa6e9",
+      "json": "1ce99816c9cfe32e",
+      "stdin": "0cc70603b38fa6e9"
     },
     "blacklist_ai/02_incident_report_sonnet_casual.md": {
       "plain": "16993b74c2ed521c",
@@ -51,32 +51,32 @@
       "stdin": "e26f1306eaa63a0c"
     },
     "blacklist_ai/02_incident_report_sonnet_formal.md": {
-      "plain": "5a872a02911b399b",
-      "strict": "6ded706f52161ae3",
-      "fail_error": "5a872a02911b399b",
-      "json": "64f867d8f361ad34",
-      "stdin": "5a872a02911b399b"
+      "plain": "17c3e837697af9d2",
+      "strict": "76f204abfaed0122",
+      "fail_error": "17c3e837697af9d2",
+      "json": "29794fe6bfa309cd",
+      "stdin": "17c3e837697af9d2"
     },
     "blacklist_ai/03_pr_description_sonnet_casual.md": {
-      "plain": "bff67ed41431bcf8",
-      "strict": "ef2c428e631b009c",
-      "fail_error": "bff67ed41431bcf8",
-      "json": "2f1e36925c0c82c2",
-      "stdin": "bff67ed41431bcf8"
+      "plain": "141da9100ffa3865",
+      "strict": "c51fab338aad4f45",
+      "fail_error": "141da9100ffa3865",
+      "json": "2732581c509836e4",
+      "stdin": "141da9100ffa3865"
     },
     "blacklist_ai/03_pr_description_sonnet_default.md": {
-      "plain": "141be463502a9579",
-      "strict": "f09feefee0c655b5",
-      "fail_error": "141be463502a9579",
-      "json": "4f269f5c1e108609",
-      "stdin": "141be463502a9579"
+      "plain": "7b158decef334dca",
+      "strict": "0517ce18f12ae850",
+      "fail_error": "7b158decef334dca",
+      "json": "aa6482c4d5f4bd12",
+      "stdin": "7b158decef334dca"
     },
     "blacklist_ai/03_pr_description_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "c6352f93d63d373b",
-      "stdin": "10fa74b964043101"
+      "plain": "585153d94cd3a719",
+      "strict": "585153d94cd3a719",
+      "fail_error": "585153d94cd3a719",
+      "json": "bdcb8db7327cb3e1",
+      "stdin": "585153d94cd3a719"
     },
     "blacklist_ai/04_slack_announce_sonnet_casual.md": {
       "plain": "10fa74b964043101",
@@ -86,25 +86,25 @@
       "stdin": "10fa74b964043101"
     },
     "blacklist_ai/04_slack_announce_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "cb48939f537441bb",
-      "stdin": "10fa74b964043101"
+      "plain": "69ff647e0148a899",
+      "strict": "69ff647e0148a899",
+      "fail_error": "69ff647e0148a899",
+      "json": "77ddb457a0fde1ed",
+      "stdin": "69ff647e0148a899"
     },
     "blacklist_ai/04_slack_announce_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "ebd4a87a2f2bd02c",
-      "stdin": "10fa74b964043101"
+      "plain": "8fe3615b2393f4de",
+      "strict": "8fe3615b2393f4de",
+      "fail_error": "8fe3615b2393f4de",
+      "json": "43c7c779dd6ff1d7",
+      "stdin": "8fe3615b2393f4de"
     },
     "blacklist_ai/05_comparison_sonnet_casual.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "01813d8cb38b2842",
-      "stdin": "10fa74b964043101"
+      "plain": "a4548308fdf38d93",
+      "strict": "a4548308fdf38d93",
+      "fail_error": "a4548308fdf38d93",
+      "json": "896ab13dab7f2e51",
+      "stdin": "a4548308fdf38d93"
     },
     "blacklist_ai/05_comparison_sonnet_default.md": {
       "plain": "10fa74b964043101",
@@ -128,18 +128,18 @@
       "stdin": "10fa74b964043101"
     },
     "blacklist_ai/06_spec_draft_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "083426d9dc73e70f",
-      "stdin": "10fa74b964043101"
+      "plain": "6b1dafa5e033fb37",
+      "strict": "6b1dafa5e033fb37",
+      "fail_error": "6b1dafa5e033fb37",
+      "json": "f31c73ab8497b427",
+      "stdin": "6b1dafa5e033fb37"
     },
     "blacklist_ai/06_spec_draft_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "96331064cbdc9229",
-      "stdin": "10fa74b964043101"
+      "plain": "cbc0f38d3ca53e3a",
+      "strict": "cbc0f38d3ca53e3a",
+      "fail_error": "cbc0f38d3ca53e3a",
+      "json": "5433836686a62b76",
+      "stdin": "cbc0f38d3ca53e3a"
     },
     "blacklist_ai/07_code_review_sonnet_casual.md": {
       "plain": "10fa74b964043101",
@@ -149,39 +149,39 @@
       "stdin": "10fa74b964043101"
     },
     "blacklist_ai/07_code_review_sonnet_default.md": {
-      "plain": "f3a4da10474745fc",
-      "strict": "66bb6a5212ac3a68",
-      "fail_error": "f3a4da10474745fc",
-      "json": "f247a246834e9c1e",
-      "stdin": "f3a4da10474745fc"
+      "plain": "1b682ce16a287445",
+      "strict": "19507e00c4f0b36e",
+      "fail_error": "1b682ce16a287445",
+      "json": "17b59ccfc5a6b7cc",
+      "stdin": "1b682ce16a287445"
     },
     "blacklist_ai/07_code_review_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "943716898782d608",
-      "stdin": "10fa74b964043101"
+      "plain": "fde291dd8fcac9b5",
+      "strict": "fde291dd8fcac9b5",
+      "fail_error": "fde291dd8fcac9b5",
+      "json": "1e32ae2430cd7fe6",
+      "stdin": "fde291dd8fcac9b5"
     },
     "blacklist_ai/08_essay_retrospective_sonnet_casual.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "40e12b0298211e7a",
-      "stdin": "10fa74b964043101"
+      "plain": "1fa312b7ef3af637",
+      "strict": "1fa312b7ef3af637",
+      "fail_error": "1fa312b7ef3af637",
+      "json": "67f0ed6edccc585d",
+      "stdin": "1fa312b7ef3af637"
     },
     "blacklist_ai/08_essay_retrospective_sonnet_default.md": {
-      "plain": "8b375fb285084fb6",
-      "strict": "8b375fb285084fb6",
-      "fail_error": "8b375fb285084fb6",
-      "json": "88d8110e12f733fb",
-      "stdin": "8b375fb285084fb6"
+      "plain": "42481055755e2680",
+      "strict": "42481055755e2680",
+      "fail_error": "42481055755e2680",
+      "json": "9ade08e3bc727239",
+      "stdin": "42481055755e2680"
     },
     "blacklist_ai/08_essay_retrospective_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "a19ba34f3fa84a03",
-      "stdin": "10fa74b964043101"
+      "plain": "1bf93ce509fb30ad",
+      "strict": "1bf93ce509fb30ad",
+      "fail_error": "1bf93ce509fb30ad",
+      "json": "a55088fb359d0d3d",
+      "stdin": "1bf93ce509fb30ad"
     },
     "edge_cases/edge_hitei_49.md": {
       "plain": "10fa74b964043101",
@@ -324,11 +324,11 @@
       "stdin": "10fa74b964043101"
     },
     "edge_cases/edge_nigiru_05.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "2dd003b32f3b1287",
-      "stdin": "10fa74b964043101"
+      "plain": "2a783dbb5af7893e",
+      "strict": "2a783dbb5af7893e",
+      "fail_error": "2a783dbb5af7893e",
+      "json": "8055585ede31b565",
+      "stdin": "2a783dbb5af7893e"
     },
     "edge_cases/edge_nigiru_06.md": {
       "plain": "10fa74b964043101",
@@ -394,11 +394,11 @@
       "stdin": "10fa74b964043101"
     },
     "edge_cases/edge_taosu_15.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "ab302a5dc2083e58",
-      "stdin": "10fa74b964043101"
+      "plain": "79abe3487f3ce48a",
+      "strict": "79abe3487f3ce48a",
+      "fail_error": "79abe3487f3ce48a",
+      "json": "b7b8c5f6788da47d",
+      "stdin": "79abe3487f3ce48a"
     },
     "edge_cases/edge_taosu_16.md": {
       "plain": "10fa74b964043101",
@@ -457,11 +457,11 @@
       "stdin": "10fa74b964043101"
     },
     "edge_cases/edge_tokasu_24.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "ab302a5dc2083e58",
-      "stdin": "10fa74b964043101"
+      "plain": "9bc7efc14b796d44",
+      "strict": "9bc7efc14b796d44",
+      "fail_error": "9bc7efc14b796d44",
+      "json": "808915a74c742856",
+      "stdin": "9bc7efc14b796d44"
     },
     "edge_cases/edge_tokasu_25.md": {
       "plain": "10fa74b964043101",
@@ -625,18 +625,18 @@
       "stdin": "10fa74b964043101"
     },
     "edge_cases/edge_yakugo_63.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "eaa11f5584dc540a",
-      "stdin": "10fa74b964043101"
+      "plain": "3bd342521d572270",
+      "strict": "3bd342521d572270",
+      "fail_error": "3bd342521d572270",
+      "json": "b0678c1a3039d9db",
+      "stdin": "3bd342521d572270"
     },
     "edge_cases/edge_yakugo_64.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "eff43b014f7927e2",
-      "stdin": "10fa74b964043101"
+      "plain": "7565f077ac3339e3",
+      "strict": "7565f077ac3339e3",
+      "fail_error": "7565f077ac3339e3",
+      "json": "567951ce9bb41bd9",
+      "stdin": "7565f077ac3339e3"
     },
     "edge_cases/edge_yakugo_65.md": {
       "plain": "10fa74b964043101",
@@ -744,11 +744,11 @@
       "stdin": "7430c6369245cbba"
     },
     "human/human_oga_06.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "9813d6407165ba43",
-      "stdin": "10fa74b964043101"
+      "plain": "a0fb91dc88b6b99c",
+      "strict": "a0fb91dc88b6b99c",
+      "fail_error": "a0fb91dc88b6b99c",
+      "json": "30f9e1cc1444e275",
+      "stdin": "a0fb91dc88b6b99c"
     },
     "human/human_oga_07.md": {
       "plain": "10fa74b964043101",
@@ -758,11 +758,11 @@
       "stdin": "10fa74b964043101"
     },
     "human/human_oga_08.md": {
-      "plain": "f7c8935e94b33865",
-      "strict": "f7c8935e94b33865",
-      "fail_error": "f7c8935e94b33865",
-      "json": "a043c3becc40a6df",
-      "stdin": "f7c8935e94b33865"
+      "plain": "13969c3f6eef844e",
+      "strict": "13969c3f6eef844e",
+      "fail_error": "13969c3f6eef844e",
+      "json": "dd1a7292954d49ca",
+      "stdin": "13969c3f6eef844e"
     },
     "raw_ai/01_tech_arch_sonnet_casual.md": {
       "plain": "d1283db6c55859b7",
@@ -772,18 +772,18 @@
       "stdin": "d1283db6c55859b7"
     },
     "raw_ai/01_tech_arch_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "ab1ce518ed6bcea8",
-      "stdin": "10fa74b964043101"
+      "plain": "592ff137bba7c526",
+      "strict": "592ff137bba7c526",
+      "fail_error": "592ff137bba7c526",
+      "json": "6e58420235cd820d",
+      "stdin": "592ff137bba7c526"
     },
     "raw_ai/01_tech_arch_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "fa483be6e508f582",
-      "stdin": "10fa74b964043101"
+      "plain": "60cc39d915ff07eb",
+      "strict": "60cc39d915ff07eb",
+      "fail_error": "60cc39d915ff07eb",
+      "json": "ce1847993e8767b5",
+      "stdin": "60cc39d915ff07eb"
     },
     "raw_ai/02_incident_report_sonnet_casual.md": {
       "plain": "9ce00291a7a92719",
@@ -814,18 +814,18 @@
       "stdin": "10fa74b964043101"
     },
     "raw_ai/03_pr_description_sonnet_default.md": {
-      "plain": "04a4bb4838edadd9",
-      "strict": "adf90a0997abd8bd",
-      "fail_error": "04a4bb4838edadd9",
-      "json": "25e35fcc256bdb19",
-      "stdin": "04a4bb4838edadd9"
+      "plain": "526284d84550dd52",
+      "strict": "3287436f800c113b",
+      "fail_error": "526284d84550dd52",
+      "json": "a01b90f0c6958621",
+      "stdin": "526284d84550dd52"
     },
     "raw_ai/03_pr_description_sonnet_formal.md": {
-      "plain": "8d42ec66a1fe5489",
-      "strict": "5ec93ab047546017",
-      "fail_error": "8d42ec66a1fe5489",
-      "json": "127c4f0fc26a8638",
-      "stdin": "8d42ec66a1fe5489"
+      "plain": "0755fb9efef369d1",
+      "strict": "ca38a31e8fdeb967",
+      "fail_error": "0755fb9efef369d1",
+      "json": "cdef519a93660a26",
+      "stdin": "0755fb9efef369d1"
     },
     "raw_ai/04_slack_announce_sonnet_casual.md": {
       "plain": "10fa74b964043101",
@@ -835,25 +835,25 @@
       "stdin": "10fa74b964043101"
     },
     "raw_ai/04_slack_announce_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "9fcc1bd0d56c9619",
-      "stdin": "10fa74b964043101"
+      "plain": "0bddf23934af5ddf",
+      "strict": "0bddf23934af5ddf",
+      "fail_error": "0bddf23934af5ddf",
+      "json": "a9502b27441b1f37",
+      "stdin": "0bddf23934af5ddf"
     },
     "raw_ai/04_slack_announce_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "f81da8e67425bb9d",
-      "stdin": "10fa74b964043101"
+      "plain": "008519870076051e",
+      "strict": "008519870076051e",
+      "fail_error": "008519870076051e",
+      "json": "24c4a7027dd400c7",
+      "stdin": "008519870076051e"
     },
     "raw_ai/05_comparison_sonnet_casual.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "f0c1318f06c518aa",
-      "stdin": "10fa74b964043101"
+      "plain": "c870c1447d8b6be9",
+      "strict": "c870c1447d8b6be9",
+      "fail_error": "c870c1447d8b6be9",
+      "json": "ae49b4555571fa59",
+      "stdin": "c870c1447d8b6be9"
     },
     "raw_ai/05_comparison_sonnet_default.md": {
       "plain": "10fa74b964043101",
@@ -863,18 +863,18 @@
       "stdin": "10fa74b964043101"
     },
     "raw_ai/05_comparison_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "364e4d2b80804171",
-      "stdin": "10fa74b964043101"
+      "plain": "cad4d5a6f85c5948",
+      "strict": "cad4d5a6f85c5948",
+      "fail_error": "cad4d5a6f85c5948",
+      "json": "c427df5421f1406b",
+      "stdin": "cad4d5a6f85c5948"
     },
     "raw_ai/06_spec_draft_sonnet_casual.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "7202abd8746cbb66",
-      "stdin": "10fa74b964043101"
+      "plain": "0a70bec418d70c51",
+      "strict": "0a70bec418d70c51",
+      "fail_error": "0a70bec418d70c51",
+      "json": "100a2274b201b724",
+      "stdin": "0a70bec418d70c51"
     },
     "raw_ai/06_spec_draft_sonnet_default.md": {
       "plain": "10fa74b964043101",
@@ -884,11 +884,11 @@
       "stdin": "10fa74b964043101"
     },
     "raw_ai/06_spec_draft_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "7a1d3366d47ccf6b",
-      "stdin": "10fa74b964043101"
+      "plain": "d2d2c278253d47cc",
+      "strict": "d2d2c278253d47cc",
+      "fail_error": "d2d2c278253d47cc",
+      "json": "afe1cba065c4b912",
+      "stdin": "d2d2c278253d47cc"
     },
     "raw_ai/07_code_review_sonnet_casual.md": {
       "plain": "d16417303652a1e5",
@@ -898,18 +898,18 @@
       "stdin": "d16417303652a1e5"
     },
     "raw_ai/07_code_review_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "30c494ecf106ce83",
-      "stdin": "10fa74b964043101"
+      "plain": "197773196c36ee52",
+      "strict": "197773196c36ee52",
+      "fail_error": "197773196c36ee52",
+      "json": "61db4b9c24a48efb",
+      "stdin": "197773196c36ee52"
     },
     "raw_ai/07_code_review_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "84cb58c18e117abf",
-      "stdin": "10fa74b964043101"
+      "plain": "ca0a2302d8d1bef1",
+      "strict": "ca0a2302d8d1bef1",
+      "fail_error": "ca0a2302d8d1bef1",
+      "json": "65aee1efe94e1eee",
+      "stdin": "ca0a2302d8d1bef1"
     },
     "raw_ai/08_essay_retrospective_sonnet_casual.md": {
       "plain": "10fa74b964043101",
@@ -954,32 +954,32 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/01_tech_arch_sonnet_casual_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "3eb4296c9430c2b8",
-      "stdin": "10fa74b964043101"
+      "plain": "2cced89f1f740d41",
+      "strict": "2cced89f1f740d41",
+      "fail_error": "2cced89f1f740d41",
+      "json": "9003a8a66bb0d4a0",
+      "stdin": "2cced89f1f740d41"
     },
     "yomiyasu_rewritten/01_tech_arch_sonnet_default.md": {
-      "plain": "bed631333e76ca48",
-      "strict": "96a3fd5305ab3af7",
-      "fail_error": "bed631333e76ca48",
-      "json": "54a4237bec8b8cea",
-      "stdin": "bed631333e76ca48"
+      "plain": "828e66a3f30e4e48",
+      "strict": "cf94876f99e4ae2d",
+      "fail_error": "828e66a3f30e4e48",
+      "json": "c472ef541feb8c87",
+      "stdin": "828e66a3f30e4e48"
     },
     "yomiyasu_rewritten/01_tech_arch_sonnet_default_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "175341f3db5b753b",
-      "stdin": "10fa74b964043101"
+      "plain": "f480575481aa12d5",
+      "strict": "f480575481aa12d5",
+      "fail_error": "f480575481aa12d5",
+      "json": "35546afceead782b",
+      "stdin": "f480575481aa12d5"
     },
     "yomiyasu_rewritten/01_tech_arch_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "8d918547b4095b02",
-      "stdin": "10fa74b964043101"
+      "plain": "db33644d4eb61edd",
+      "strict": "db33644d4eb61edd",
+      "fail_error": "db33644d4eb61edd",
+      "json": "79042c71c767f5a7",
+      "stdin": "db33644d4eb61edd"
     },
     "yomiyasu_rewritten/01_tech_arch_sonnet_formal_bl.md": {
       "plain": "10fa74b964043101",
@@ -989,11 +989,11 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/02_incident_report_sonnet_casual.md": {
-      "plain": "7a29f019fc320bec",
-      "strict": "99dd0a5ebc9fe06a",
-      "fail_error": "7a29f019fc320bec",
-      "json": "781845c6245b3c54",
-      "stdin": "7a29f019fc320bec"
+      "plain": "486bdba18c511d99",
+      "strict": "f14f8714ca5c4817",
+      "fail_error": "486bdba18c511d99",
+      "json": "44f27bb4808dda29",
+      "stdin": "486bdba18c511d99"
     },
     "yomiyasu_rewritten/02_incident_report_sonnet_casual_bl.md": {
       "plain": "10fa74b964043101",
@@ -1010,25 +1010,25 @@
       "stdin": "0e7f46f0c26e2961"
     },
     "yomiyasu_rewritten/02_incident_report_sonnet_default_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "b0859cb597a85f9b",
-      "stdin": "10fa74b964043101"
+      "plain": "f0c80aa8c100161f",
+      "strict": "f0c80aa8c100161f",
+      "fail_error": "f0c80aa8c100161f",
+      "json": "c170fb4f24c8e2ab",
+      "stdin": "f0c80aa8c100161f"
     },
     "yomiyasu_rewritten/02_incident_report_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "80643db67d2886d8",
-      "stdin": "10fa74b964043101"
+      "plain": "ff2464127b34aeb4",
+      "strict": "ff2464127b34aeb4",
+      "fail_error": "ff2464127b34aeb4",
+      "json": "ae0cd30fa352e641",
+      "stdin": "ff2464127b34aeb4"
     },
     "yomiyasu_rewritten/02_incident_report_sonnet_formal_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "5324e8f6b87bdbfe",
-      "stdin": "10fa74b964043101"
+      "plain": "2760983f13b90099",
+      "strict": "2760983f13b90099",
+      "fail_error": "2760983f13b90099",
+      "json": "9e6d2f765c88dc45",
+      "stdin": "2760983f13b90099"
     },
     "yomiyasu_rewritten/03_pr_description_sonnet_casual.md": {
       "plain": "10fa74b964043101",
@@ -1038,95 +1038,95 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/03_pr_description_sonnet_casual_bl.md": {
-      "plain": "054a256b190889b8",
-      "strict": "9f14a321347a75b1",
-      "fail_error": "054a256b190889b8",
-      "json": "c00c03133aaf62ae",
-      "stdin": "054a256b190889b8"
+      "plain": "eead37b4fcbc75a4",
+      "strict": "acf3aa4b9b372203",
+      "fail_error": "eead37b4fcbc75a4",
+      "json": "4ea8075973f14c59",
+      "stdin": "eead37b4fcbc75a4"
     },
     "yomiyasu_rewritten/03_pr_description_sonnet_default.md": {
-      "plain": "5dceb5defbe2f9a2",
-      "strict": "9d1db0d4988c6e71",
-      "fail_error": "5dceb5defbe2f9a2",
-      "json": "760b0c543b7c68fa",
-      "stdin": "5dceb5defbe2f9a2"
+      "plain": "15f5903650ca7532",
+      "strict": "02525ec0ad0c41ef",
+      "fail_error": "15f5903650ca7532",
+      "json": "c622179769d2263c",
+      "stdin": "15f5903650ca7532"
     },
     "yomiyasu_rewritten/03_pr_description_sonnet_default_bl.md": {
-      "plain": "53a5f60e77f060f8",
-      "strict": "1740679fa575fdcb",
-      "fail_error": "53a5f60e77f060f8",
-      "json": "3887078c06d06f99",
-      "stdin": "53a5f60e77f060f8"
+      "plain": "c6a1baa2aa53bd65",
+      "strict": "e0d3eeb8d119c160",
+      "fail_error": "c6a1baa2aa53bd65",
+      "json": "646d3ff5df50e410",
+      "stdin": "c6a1baa2aa53bd65"
     },
     "yomiyasu_rewritten/03_pr_description_sonnet_formal.md": {
-      "plain": "4ddb96bbf1e8f999",
-      "strict": "16e9533de44a656d",
-      "fail_error": "4ddb96bbf1e8f999",
-      "json": "74b0f5804e36eb8e",
-      "stdin": "4ddb96bbf1e8f999"
+      "plain": "ab9e32746547d759",
+      "strict": "ce6db15c28ba2d9e",
+      "fail_error": "ab9e32746547d759",
+      "json": "a52fc256dd0b2933",
+      "stdin": "ab9e32746547d759"
     },
     "yomiyasu_rewritten/03_pr_description_sonnet_formal_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "a32e66d7e89747de",
-      "stdin": "10fa74b964043101"
+      "plain": "2383d03601ff1497",
+      "strict": "2383d03601ff1497",
+      "fail_error": "2383d03601ff1497",
+      "json": "d9a6815b872227fa",
+      "stdin": "2383d03601ff1497"
     },
     "yomiyasu_rewritten/04_slack_announce_sonnet_casual.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "2cabde5648de3f86",
-      "stdin": "10fa74b964043101"
+      "plain": "4a8d26ccd78c16be",
+      "strict": "4a8d26ccd78c16be",
+      "fail_error": "4a8d26ccd78c16be",
+      "json": "50f33aa31b7b30ad",
+      "stdin": "4a8d26ccd78c16be"
     },
     "yomiyasu_rewritten/04_slack_announce_sonnet_casual_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "75b4e65b95c45c9d",
-      "stdin": "10fa74b964043101"
+      "plain": "23e5691a0449c5ef",
+      "strict": "23e5691a0449c5ef",
+      "fail_error": "23e5691a0449c5ef",
+      "json": "31feac35525bdf1b",
+      "stdin": "23e5691a0449c5ef"
     },
     "yomiyasu_rewritten/04_slack_announce_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "e6e113bb17d9d1cb",
-      "stdin": "10fa74b964043101"
+      "plain": "4d277023682fea13",
+      "strict": "4d277023682fea13",
+      "fail_error": "4d277023682fea13",
+      "json": "b93b883cf11c1742",
+      "stdin": "4d277023682fea13"
     },
     "yomiyasu_rewritten/04_slack_announce_sonnet_default_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "f65e4fb5e2656696",
-      "stdin": "10fa74b964043101"
+      "plain": "92024a4f6402f9a6",
+      "strict": "92024a4f6402f9a6",
+      "fail_error": "92024a4f6402f9a6",
+      "json": "56e427610f3cbbbf",
+      "stdin": "92024a4f6402f9a6"
     },
     "yomiyasu_rewritten/04_slack_announce_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "4aed679f6f99b328",
-      "stdin": "10fa74b964043101"
+      "plain": "844d4eaab6ef25a6",
+      "strict": "844d4eaab6ef25a6",
+      "fail_error": "844d4eaab6ef25a6",
+      "json": "0cebb8907fdd7e56",
+      "stdin": "844d4eaab6ef25a6"
     },
     "yomiyasu_rewritten/04_slack_announce_sonnet_formal_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "6637eaf7bddee842",
-      "stdin": "10fa74b964043101"
+      "plain": "65b0e4fafe589ffe",
+      "strict": "65b0e4fafe589ffe",
+      "fail_error": "65b0e4fafe589ffe",
+      "json": "d09b0c576396c86f",
+      "stdin": "65b0e4fafe589ffe"
     },
     "yomiyasu_rewritten/05_comparison_sonnet_casual.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "fada643cd28dda5d",
-      "stdin": "10fa74b964043101"
+      "plain": "daf6fe72591b8b68",
+      "strict": "daf6fe72591b8b68",
+      "fail_error": "daf6fe72591b8b68",
+      "json": "5ca79c05561aea41",
+      "stdin": "daf6fe72591b8b68"
     },
     "yomiyasu_rewritten/05_comparison_sonnet_casual_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "2c36de2031a8e571",
-      "stdin": "10fa74b964043101"
+      "plain": "d82273749b9749c8",
+      "strict": "d82273749b9749c8",
+      "fail_error": "d82273749b9749c8",
+      "json": "7688742a164cb577",
+      "stdin": "d82273749b9749c8"
     },
     "yomiyasu_rewritten/05_comparison_sonnet_default.md": {
       "plain": "10fa74b964043101",
@@ -1136,18 +1136,18 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/05_comparison_sonnet_default_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "7d81b83a41111551",
-      "stdin": "10fa74b964043101"
+      "plain": "58a5b5bded36a9b3",
+      "strict": "58a5b5bded36a9b3",
+      "fail_error": "58a5b5bded36a9b3",
+      "json": "a2aa259f8e7162ab",
+      "stdin": "58a5b5bded36a9b3"
     },
     "yomiyasu_rewritten/05_comparison_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "6437bf55b5a6c6d5",
-      "stdin": "10fa74b964043101"
+      "plain": "ac9138a6d941c301",
+      "strict": "ac9138a6d941c301",
+      "fail_error": "ac9138a6d941c301",
+      "json": "25fbbc62aa070bef",
+      "stdin": "ac9138a6d941c301"
     },
     "yomiyasu_rewritten/05_comparison_sonnet_formal_bl.md": {
       "plain": "10fa74b964043101",
@@ -1157,32 +1157,32 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/06_spec_draft_sonnet_casual.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "41b4623076576ea6",
-      "stdin": "10fa74b964043101"
+      "plain": "0f546d2837612ee8",
+      "strict": "0f546d2837612ee8",
+      "fail_error": "0f546d2837612ee8",
+      "json": "8a57c5b17fcb80aa",
+      "stdin": "0f546d2837612ee8"
     },
     "yomiyasu_rewritten/06_spec_draft_sonnet_casual_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "8575b53c12f7c208",
-      "stdin": "10fa74b964043101"
+      "plain": "4cf15f47d70cbbcd",
+      "strict": "4cf15f47d70cbbcd",
+      "fail_error": "4cf15f47d70cbbcd",
+      "json": "8f6d7d6fc8515f9f",
+      "stdin": "4cf15f47d70cbbcd"
     },
     "yomiyasu_rewritten/06_spec_draft_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "b0d76b63b26c8dd8",
-      "stdin": "10fa74b964043101"
+      "plain": "5ff9c0a75465998c",
+      "strict": "5ff9c0a75465998c",
+      "fail_error": "5ff9c0a75465998c",
+      "json": "868dcea11372a6f7",
+      "stdin": "5ff9c0a75465998c"
     },
     "yomiyasu_rewritten/06_spec_draft_sonnet_default_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "f871367d474fd075",
-      "stdin": "10fa74b964043101"
+      "plain": "58f944c5a1ac4ab8",
+      "strict": "58f944c5a1ac4ab8",
+      "fail_error": "58f944c5a1ac4ab8",
+      "json": "06a5b3888b9b1582",
+      "stdin": "58f944c5a1ac4ab8"
     },
     "yomiyasu_rewritten/06_spec_draft_sonnet_formal.md": {
       "plain": "10fa74b964043101",
@@ -1192,18 +1192,18 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/06_spec_draft_sonnet_formal_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "efee5a06c46f639e",
-      "stdin": "10fa74b964043101"
+      "plain": "02eed0e2fa3e1733",
+      "strict": "02eed0e2fa3e1733",
+      "fail_error": "02eed0e2fa3e1733",
+      "json": "2853b5af1de173d8",
+      "stdin": "02eed0e2fa3e1733"
     },
     "yomiyasu_rewritten/07_code_review_sonnet_casual.md": {
-      "plain": "cc07d5081a6f2f34",
-      "strict": "49f48c529d34573c",
-      "fail_error": "cc07d5081a6f2f34",
-      "json": "55215cec38a9d866",
-      "stdin": "cc07d5081a6f2f34"
+      "plain": "0e01c6fa47aff8e4",
+      "strict": "2c41614e26aa4a2c",
+      "fail_error": "0e01c6fa47aff8e4",
+      "json": "3904015720a2ed89",
+      "stdin": "0e01c6fa47aff8e4"
     },
     "yomiyasu_rewritten/07_code_review_sonnet_casual_bl.md": {
       "plain": "10fa74b964043101",
@@ -1213,32 +1213,32 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/07_code_review_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "7bfa7e701e0e0aa8",
-      "stdin": "10fa74b964043101"
+      "plain": "e7a6392820e312d5",
+      "strict": "e7a6392820e312d5",
+      "fail_error": "e7a6392820e312d5",
+      "json": "b615831c03c43a45",
+      "stdin": "e7a6392820e312d5"
     },
     "yomiyasu_rewritten/07_code_review_sonnet_default_bl.md": {
-      "plain": "87d896c37807b4cd",
-      "strict": "81d6e7a62470cb3b",
-      "fail_error": "87d896c37807b4cd",
-      "json": "dd9a2d9dab3c84bd",
-      "stdin": "87d896c37807b4cd"
+      "plain": "eee2c2e4e8857f98",
+      "strict": "df10bd1661be4d48",
+      "fail_error": "eee2c2e4e8857f98",
+      "json": "1c902f8aab140d4d",
+      "stdin": "eee2c2e4e8857f98"
     },
     "yomiyasu_rewritten/07_code_review_sonnet_formal.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "7b7e0bf49d83afd7",
-      "stdin": "10fa74b964043101"
+      "plain": "f1d7f3e8458b868c",
+      "strict": "f1d7f3e8458b868c",
+      "fail_error": "f1d7f3e8458b868c",
+      "json": "96f7e49fda12feeb",
+      "stdin": "f1d7f3e8458b868c"
     },
     "yomiyasu_rewritten/07_code_review_sonnet_formal_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "dd50cf007aa455e1",
-      "stdin": "10fa74b964043101"
+      "plain": "27ba0d42e7a2ad12",
+      "strict": "27ba0d42e7a2ad12",
+      "fail_error": "27ba0d42e7a2ad12",
+      "json": "67f4460f433ba6da",
+      "stdin": "27ba0d42e7a2ad12"
     },
     "yomiyasu_rewritten/08_essay_retrospective_sonnet_casual.md": {
       "plain": "10fa74b964043101",
@@ -1255,18 +1255,18 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/08_essay_retrospective_sonnet_default.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "fada643cd28dda5d",
-      "stdin": "10fa74b964043101"
+      "plain": "0bff38993ca89f3e",
+      "strict": "0bff38993ca89f3e",
+      "fail_error": "0bff38993ca89f3e",
+      "json": "469b9020b5ab3d7b",
+      "stdin": "0bff38993ca89f3e"
     },
     "yomiyasu_rewritten/08_essay_retrospective_sonnet_default_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "626c2905d0e32f29",
-      "stdin": "10fa74b964043101"
+      "plain": "48412b2dba2a9721",
+      "strict": "48412b2dba2a9721",
+      "fail_error": "48412b2dba2a9721",
+      "json": "4bb2cf2ed0128c2e",
+      "stdin": "48412b2dba2a9721"
     },
     "yomiyasu_rewritten/08_essay_retrospective_sonnet_formal.md": {
       "plain": "10fa74b964043101",
@@ -1276,11 +1276,11 @@
       "stdin": "10fa74b964043101"
     },
     "yomiyasu_rewritten/08_essay_retrospective_sonnet_formal_bl.md": {
-      "plain": "10fa74b964043101",
-      "strict": "10fa74b964043101",
-      "fail_error": "10fa74b964043101",
-      "json": "0e99649db62d009a",
-      "stdin": "10fa74b964043101"
+      "plain": "0fcd5c36df2944b8",
+      "strict": "0fcd5c36df2944b8",
+      "fail_error": "0fcd5c36df2944b8",
+      "json": "ecdc9cb933a1542d",
+      "stdin": "0fcd5c36df2944b8"
     }
   },
   "updates": [
@@ -1298,6 +1298,7 @@
     "2026-10-23 v2.2.0 の新しい info の規則（直訳語、見出しの比喩ラベル、「と言えるでしょう」など11の規則）を入れたときの作り直し: unchanged_lint() で作って比べ、値が変わったのは、直訳語の型1（calque）の候補が L3（送信側は相手の生死を気にせず）に1件出る raw_ai/01_tech_arch_sonnet_casual.md の lint の5通りだった。新しい規則は info なので、lint の終了コード（--strict、--fail-on warn と error を含む）と点数（rule_penalty_score）は変わらなかった。ほかの162本の lint の行は変わらなかった。用語リスト（.yomiyasu-words/）はリポジトリにないので読まれない。",
     "2026-10-29 v2.5.0 で tests/corpus に例文を足したときの行の追加: edge_cases に6章の例文6本（否定で終わる定義文の edge_hitei_49〜51 と、漢語の名詞で動作を省いた文の edge_kango_52〜54。どれも種類なしの lint の候補は0件）を足した。5a の例（見出しの形とまとめを依頼したスライドと、まとめの節がある記事の、元と後と依頼の文）は、新しいフォルダ requests に .txt で置いた（.md の数え方に入れない）。lint の行は足した6本の分を今の出力で作った。",
     "2026-11-05 3.0.0 で tests/corpus に例文を足したときの行の追加: edge_cases に直訳語の型4と型5の字と語を文字どおりに使った文12本（edge_yakugo_55〜66。どれも種類なしの lint の候補は0件、点数100）を足した。lint の行は足した12本の分を今の出力で作った。",
-    "2026-11-17 diff と check を外したときに、diff と check の行と、その出どころの欄を消した。lint の行は変えていない。"
+    "2026-11-17 diff と check を外したときに、diff と check の行と、その出どころの欄を消した。lint の行は変えていない。",
+    "2026-11-26 本家の v3.3.0 を取り込み、lint の pause_comma を種類を指定しないときも当て（promo と script では今までどおり出さない）、読点を残す形を狭めたときの作り直し: unchanged_lint() を作って比べ、種類なしで pause_comma の候補が出る70本（yomiyasu_rewritten 36本、blacklist_ai 15本、raw_ai 12本、edge_cases 5本、human の human_oga_06 と human_oga_08）の5通り（plain、strict、fail_error、json、stdin）が変わった。変わったファイルは本家の作り直しと同じ70本だった。pause_comma は info なので、lint の --strict と --fail-on の終了コードは変わらない。ほかの行は今の出力と1字も変わらないことを確かめた。"
   ]
 }

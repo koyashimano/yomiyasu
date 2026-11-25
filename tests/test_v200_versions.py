@@ -347,7 +347,7 @@ class TestCliVersions(unittest.TestCase):
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
         self.assertEqual(process.stdout, "yomiyasu_lint.py {} (JSON format {})\n".format(version, format_version))
         # 10.1 L1: 完全一致
-        self.assertEqual(process.stdout, "yomiyasu_lint.py 3.2.0 (JSON format 2)\n")
+        self.assertEqual(process.stdout, "yomiyasu_lint.py 3.3.0 (JSON format 2)\n")
         self.assertEqual(process.stderr, "")
 
     def test_lint_json_versions(self):

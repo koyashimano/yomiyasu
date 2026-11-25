@@ -9,7 +9,8 @@ formal を足して9つにする。lint で外す規則はなし）と、あと�
   lint の人が読む出力、終了コード、標準エラー（と、context を除いた JSON）を、コーパスの全ファイルで比べる。
   - lint の行は G7 を入れる前の作業ツリー（45a5885 に check の固めを入れたもの）の出力で、作り直していない。
     指定しないときの lint の出力が G7 の前と1字も違わないことを見る。ただし 2.2.0 で、新しい info の規則の候補が出る
-    1本の行は作り直した（fixture の updates）。
+    1本の行は作り直した（fixture の updates）。3.3.0 で pause_comma を種類なしでも当てるようにしたので、
+    その候補が出る70本の行を作り直した（同じく updates）。
   lint の出力をわざと変えたときは、unchanged_lint() の値で行を作り直し、作り直した理由と、終了コードが変わったファイルを
   updates と報告に書く（条件をゆるめて通さない）。
   fixture の説明の欄（description、generated_by、source_commit、updates）には、手元の記録と道具の名前を書かない
@@ -117,10 +118,11 @@ LINT_HELP_LIST = "\n".join([
     "  paper     なし",
     "  script    bare_verb_chain、fragment_run、metaphor_label、sentence_end_repetition",
     "mail は meta_filler の返信・結びの5型だけも外します（ご質問ありがとうございます、必要なら次に〜します、いかがでしたでしょうか、ぜひ〜してみてください、参考になれば幸いです等）。宛名・挨拶・署名を削る専用規則はありません。paper は慎重表現を削る規則がないため除外なし。",
-    "種類を指定したときだけ当てる規則: pause_comma（promo、script を除く11種類。種類を指定しないときは出しません）",
     "種類を指定したときだけ当てる規則: dialogue_period（script だけ。種類を指定しないときは出しません）",
     "種類を指定したときだけ当てる規則: narrative_density（essay だけ。種類を指定しないときは出しません）",
     "種類を指定したときだけ当てる規則: slide_comma（slides だけ。種類を指定しないときは出しません）",
+    # 3.3.0: pause_comma を種類を指定しないときも当て、promo と script でだけ出さない
+    "種類によって出さない規則: pause_comma（promo、script では出しません。種類を指定しないときとほかの11種類では当てます）",
     "外した候補は、見直し候補の件数と --strict、--fail-on の判定に入れません。",
 ])
 # 9.3 と 9.4 の1行
@@ -306,19 +308,27 @@ class DefaultsTest(DocTypeCase):
 
 class LintSkipTest(DocTypeCase):
     def test_b1_findings_with_a_type_are_the_plain_findings_minus_the_table(self):
-        """B1: コーパスの全ファイルと10の種類で、種類つきの候補から種類を限って当てる規則（pause_comma、2.2.0 の
-        dialogue_period と narrative_density）を除けば、種類なしの候補から表の規則を除いたもの（順も同じ）。"""
+        """B1: コーパスの全ファイルと10の種類で、種類つきの候補から種類を限って当てる規則（2.2.0 の
+        dialogue_period と narrative_density、2.4.0 の slide_comma）を除けば、種類なしの候補から表の規則を除いたもの（順も同じ）。
+        3.3.0 から pause_comma は種類なしでも当て、promo と script では出さない（外した候補に数えない）。essay は目的語の
+        「を、」を拾わないので、essay の pause_comma は比べない。"""
+        off_rules = yomiyasu_lint.DOC_TYPE_OFF_RULES
         for relative in corpus_files():
             text = (CORPUS / relative).read_text(encoding="utf-8")
             plain = yomiyasu_lint.lint_text(text)["findings"]
             for value in DOC_TYPE_VALUES:
                 result = yomiyasu_lint.lint_text(text, doc_type=value)
-                kept = [finding for finding in plain if finding["rule"] not in SKIP_RULES[value]]
-                self.assertEqual([f for f in result["findings"] if f["rule"] not in yomiyasu_lint.DOC_TYPE_ONLY_RULES], kept,
-                                 (relative, value))
+                off = [finding for finding in plain if value in off_rules.get(finding["rule"], ())]
+                kept = [finding for finding in plain if finding["rule"] not in SKIP_RULES[value] and finding not in off]
+                compared = [f for f in result["findings"] if f["rule"] not in yomiyasu_lint.DOC_TYPE_ONLY_RULES]
+                if value == "essay":
+                    compared = [f for f in compared if f["rule"] != "pause_comma"]
+                    kept = [f for f in kept if f["rule"] != "pause_comma"]
+                self.assertEqual(compared, kept, (relative, value))
                 skipped = result["context"]["skipped_by_doc_type"]
                 self.assertEqual(list(skipped), list(SKIP_RULES[value]), (relative, value))
-                self.assertEqual(sum(skipped.values()), len(plain) - len(kept), (relative, value))
+                self.assertEqual(sum(skipped.values()),
+                                 len([f for f in plain if f["rule"] in SKIP_RULES[value] and f not in off]), (relative, value))
                 for rule, count in skipped.items():
                     self.assertEqual(count, sum(1 for finding in plain if finding["rule"] == rule), (relative, rule))
 
@@ -446,13 +456,14 @@ class LintSkipTest(DocTypeCase):
         self.assertEqual(lines[-2], "終了コード1: --strict の条件（warn か error の候補が1件以上）に当たりました（error 1件、warn 0件）。")
 
     def test_b8_type_only_rules(self):
-        """B8: DOC_TYPE_ONLY_RULES の規則は、種類なしとほかの種類では除かれ、指定した種類でだけ残る。"""
+        """B8: DOC_TYPE_ONLY_RULES の規則は、種類なしとほかの種類では除かれ、指定した種類でだけ残る。
+        3.3.0 で pause_comma を、種類なしでも当てて promo と script でだけ出さない表（DOC_TYPE_OFF_RULES）に移した。"""
         self.assertEqual(yomiyasu_lint.DOC_TYPE_ONLY_RULES, {
-            "pause_comma": ("pr", "article", "incident", "proposal", "minutes", "manual", "slides", "essay", "formal", "mail", "paper"),
             "dialogue_period": ("script",),
             "narrative_density": ("essay",),
             "slide_comma": ("slides",),
         })
+        self.assertEqual(yomiyasu_lint.DOC_TYPE_OFF_RULES, {"pause_comma": ("promo", "script")})
         text = COUNT_DECLARATION_ONLY
         with mock.patch.object(yomiyasu_lint, "DOC_TYPE_ONLY_RULES", {"count_declaration": ("article",)}):
             self.assertEqual(yomiyasu_lint.lint_text(text)["findings"], [])
@@ -514,7 +525,8 @@ class TableTest(unittest.TestCase):
                 self.assertNotIn(rule, rules, value)
 
     def test_c6_lint_help_lists_the_table(self):
-        """C6: lint の --help の一覧が、DOC_TYPE_SKIP_RULES と DOC_TYPE_ONLY_RULES から作った文と同じ（終了コードの表の前）。"""
+        """C6: lint の --help の一覧が、DOC_TYPE_SKIP_RULES、DOC_TYPE_ONLY_RULES、DOC_TYPE_OFF_RULES（3.3.0）から作った文と同じ
+        （終了コードの表の前）。"""
         built = ["文書の種類ごとに外す規則（--doc-type）:"]
         for value, rules in yomiyasu_lint.DOC_TYPE_SKIP_RULES.items():
             built.append("  {:<10}{}".format(value, "、".join(rules) if rules else "なし"))
@@ -526,6 +538,10 @@ class TableTest(unittest.TestCase):
             else:
                 scope = "{} を除く{}種類".format("、".join(excluded), len(allowed)) if excluded else "全{}種類".format(len(allowed))
             built.append("種類を指定したときだけ当てる規則: {}（{}。種類を指定しないときは出しません）".format(rule, scope))
+        for rule, off in yomiyasu_lint.DOC_TYPE_OFF_RULES.items():
+            others = len([row for row in yomiyasu_lint.DOC_TYPES if row[0] not in off])
+            built.append("種類によって出さない規則: {}（{} では出しません。種類を指定しないときとほかの{}種類では当てます）".format(
+                rule, "、".join(off), others))
         built.append("外した候補は、見直し候補の件数と --strict、--fail-on の判定に入れません。")
         self.assertEqual("\n".join(built), LINT_HELP_LIST)
         code, out, _ = call(yomiyasu_lint.main, ["--help"])
@@ -602,7 +618,7 @@ class OptionTest(DocTypeCase):
 
     def test_d8_versions_do_not_change(self):
         """D8: --version と形式の版は変えない（9.7）。"""
-        self.assertEqual(call(yomiyasu_lint.main, ["--version"])[1], "yomiyasu_lint.py 3.2.0 (JSON format 2)\n")
+        self.assertEqual(call(yomiyasu_lint.main, ["--version"])[1], "yomiyasu_lint.py 3.3.0 (JSON format 2)\n")
 
 
 # ---- E. 速さ ----
