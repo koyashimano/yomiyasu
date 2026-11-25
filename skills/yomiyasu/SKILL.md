@@ -4,7 +4,7 @@ description: AIが生成した日本語を推敲するスキル。利用者が y
 license: MIT
 allowed-tools: Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/yomiyasu_lint.py *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/yomiyasu_lint.py *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/yomiyasu_lint.py *)
 metadata:
-  version: "3.3.0"
+  version: "3.4.0"
 ---
 
 # yomiyasu
@@ -274,7 +274,7 @@ YOMIYASU_EOF
 - 最終稿を原文とは別のファイルに保存し、原文と同じ引数で lint をかける（「実行するコマンド」の節）。
 - 最終稿を読み手として上から通読し、用件と誰が何をするかが最初の段落で伝わるか、前に戻らずに読めるかを確認する。止まる所があれば直す。
 - lint に残った info の指摘は、その文を Step 2 の問いで読み直し、直すか、残す理由を「残したAI特有の表現」に書く（理由のみで済ませるのは、定着した表現と文字どおりの意味のときのみ）。
-- 原文と最終稿で地の文の読点の数を比べ、増えた読点が「文長と読点の調整」の残す読点に当たらなければ除く。最終稿の lint に残った pause_comma の読点と、候補に出なかった文頭の「〜は、」「〜を、」や見出しの読点も同じように見る。
+- 原文と最終稿で地の文の読点の数を比べ、増えた読点が「文長と読点の調整」の残す読点に当たらなければ除く。最終稿の lint に残った pause_comma の読点と、候補に出なかった文頭の「〜は、」「〜を、」や見出しの読点も同じように見る。スライド（slides）の見出しには、カギ括弧や引用符の中と数字の区切りの他の読点を残さない（lint の slide_comma。依頼で見出しの形が決まっているときと文書の題はそのままにする）。
 - 直したら lint をかけ直す。
 
 原文のファイルを更新する依頼なら、最終稿をそのまま原文の場所に複製する。
