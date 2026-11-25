@@ -273,18 +273,18 @@ class SlideHeadingCommaTest(unittest.TestCase):
 class SlideHeadingDocsTest(unittest.TestCase):
     def test_tools_md_limits_on_quote_marks_and_hits(self):
         tools = (ROOT / "docs" / "tools.md").read_text(encoding="utf-8")
-        self.assertIn("〝〟と全角の＂＂は引用符に数えないので、その中の読点も候補に出ます（〝はい、いいえ〟で答える）。", tools)
+        self.assertIn("〝〟と全角の＂＂は引用符として扱わないため、その中の読点も指摘します（〝はい、いいえ〟で答える）。", tools)
         self.assertIn("「〝はい、」", slide("## 〝はい、いいえ〟で答える\n")[0]["message"])
         self.assertIn("「＂はい、」", slide("## ＂はい、いいえ＂で答える\n")[0]["message"])
-        # 当たった言い方の限り（見出しの行は候補に出る）
-        self.assertIn("同じ言い方の読点が2つあっても1つだけ並べます", tools)
+        # 指摘の文に示す該当箇所の制約（見出しの行には指摘が出る）
+        self.assertIn("同じ文字列の読点が2つあっても、該当箇所は1つのみ示します", tools)
         self.assertEqual([f["line"] for f in slide("## 確認、確認、また確認\n")], [1])
         self.assertEqual(slide("## 確認、確認、また確認\n")[0]["message"].count("「確認、」"), 1)
         self.assertIn("「…、」", slide("## 「速く、正しく」、そして安く\n")[0]["message"])
         # 3.4.1: 数字の区切りの「，」は当たった言い方の境目にしない（3.4.0 は「０００件、」から切り出していた。issue #76）
         self.assertIn("「１２，０００件、」", slide("## １２，０００件、達成\n")[0]["message"])
         self.assertNotIn("「０００件、」", slide("## １２，０００件、達成\n")[0]["message"])
-        self.assertIn("時刻や比の「:」「：」のあとから切り出すことがあります", tools)
+        self.assertIn("時刻や比の「:」「：」がある見出しでは、該当箇所が「:」の直後から始まることがあります", tools)
         self.assertIn("「30、」", slide("## 会議は12:30、場所は本社\n")[0]["message"])
 
     def test_readme_en_on_headings_and_bullets(self):

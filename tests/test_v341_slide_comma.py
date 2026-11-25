@@ -1,4 +1,4 @@
-"""3.4.1: lint の slide_comma の当たった言い方を、数字の区切りの「，」のあとから切り出さない（本家の issue #76）。
+"""3.4.1: lint の slide_comma で、指摘の文に示す該当箇所を数字の区切りの「，」の直後から始めない（本家の issue #76）。
 
 本家の tests/test_v341_issue76.py のうち、lint の SlideCommaExcerptTest のみを取り込んだ（diff の試験は、diff を削除したので入れていない）。
 文はすべて合成の文。

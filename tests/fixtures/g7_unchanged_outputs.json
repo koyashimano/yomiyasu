@@ -1,10 +1,10 @@
 {
   "description": "指定しない（--doc-type と --reader を付けない）ときの lint の出力の要約。tests/test_v200_doc_type.py の UnchangedOutputTest が今の出力と照らす（種類と読者を指定しない利用者の出力を、知らないうちに変えないための見張り）。lint の行は種類と読者のオプション（--doc-type と --reader）を入れる前の作業ツリー（45a5885 に check の固めを入れたもの）の出力で、作り直していない（指定しないときの lint の出力が、そのオプションを入れる前と1字も違わないことを見る）。行の出どころは generated_by、source_commit、source_sha256 の lint。値は、終了コード、標準出力、標準エラー（JSON は context を除いたもの）をつないだ SHA-256 の先頭16字。今の版の文字列が tool_version の値と違うときは、tool_version の値に読み替えてから数える。",
   "generated_by": {
-    "lint": "種類と読者のオプション（--doc-type と --reader）を入れる前に tests/test_v200_doc_type.py の unchanged_lint() で作った値。作り直していない（作り直すたびに、今の unchanged_lint() と1字も違わないことを確かめる）。ただし 2.2.0 で、新しい info の規則（直訳語の calque）の候補が出る raw_ai/01_tech_arch_sonnet_casual.md の1本だけは、その5通り（plain、strict、fail_error、json、stdin）を unchanged_lint() で作り直した（updates）。3.3.0 で pause_comma を種類なしでも当てるようにしたので、候補が変わる70本の5通り（plain、strict、fail_error、json、stdin）を unchanged_lint() で作り直した（updates）"
+    "lint": "種類と読者のオプション（--doc-type と --reader）を入れる前に tests/test_v200_doc_type.py の unchanged_lint() で作った値。作り直していない（作り直すたびに、今の unchanged_lint() と1字も違わないことを確かめる）。ただし 2.2.0 で、新しい info の規則（直訳語の calque）の候補が出る raw_ai/01_tech_arch_sonnet_casual.md の1本だけは、その5通り（plain、strict、fail_error、json、stdin）を unchanged_lint() で作り直した（updates）。3.3.0 で pause_comma を種類を指定しないときも出すようにしたため、指摘が変わる70本の5通り（plain、strict、fail_error、json、stdin）を unchanged_lint() で再生成した（updates）"
   },
   "source_commit": {
-    "lint": "45a5885（scripts に未コミットの変更あり: check の固め）。raw_ai/01_tech_arch_sonnet_casual.md の行だけは 2.2.0 の規則を入れた作業ツリー。3.3.0 で作り直した70本の行は、pause_comma を種類なしでも当てるようにした作業ツリー"
+    "lint": "45a5885（scripts に未コミットの変更あり: check の固め）。raw_ai/01_tech_arch_sonnet_casual.md の行だけは 2.2.0 の規則を入れた作業ツリー。3.3.0 で再生成した70本の行は、pause_comma を種類を指定しないときも出すようにした作業ツリー"
   },
   "source_sha256": {
     "lint": {
@@ -1299,6 +1299,6 @@
     "2026-10-29 v2.5.0 で tests/corpus に例文を足したときの行の追加: edge_cases に6章の例文6本（否定で終わる定義文の edge_hitei_49〜51 と、漢語の名詞で動作を省いた文の edge_kango_52〜54。どれも種類なしの lint の候補は0件）を足した。5a の例（見出しの形とまとめを依頼したスライドと、まとめの節がある記事の、元と後と依頼の文）は、新しいフォルダ requests に .txt で置いた（.md の数え方に入れない）。lint の行は足した6本の分を今の出力で作った。",
     "2026-11-05 3.0.0 で tests/corpus に例文を足したときの行の追加: edge_cases に直訳語の型4と型5の字と語を文字どおりに使った文12本（edge_yakugo_55〜66。どれも種類なしの lint の候補は0件、点数100）を足した。lint の行は足した12本の分を今の出力で作った。",
     "2026-11-17 diff と check を外したときに、diff と check の行と、その出どころの欄を消した。lint の行は変えていない。",
-    "2026-11-26 本家の v3.3.0 を取り込み、lint の pause_comma を種類を指定しないときも当て（promo と script では今までどおり出さない）、読点を残す形を狭めたときの作り直し: unchanged_lint() を作って比べ、種類なしで pause_comma の候補が出る70本（yomiyasu_rewritten 36本、blacklist_ai 15本、raw_ai 12本、edge_cases 5本、human の human_oga_06 と human_oga_08）の5通り（plain、strict、fail_error、json、stdin）が変わった。変わったファイルは本家の作り直しと同じ70本だった。pause_comma は info なので、lint の --strict と --fail-on の終了コードは変わらない。ほかの行は今の出力と1字も変わらないことを確かめた。"
+    "2026-11-26 本家の v3.3.0 を取り込み、lint の pause_comma を種類を指定しないときも出すようにし（promo と script では、これまでどおり出さない）、読点を残す条件を狭めたときの再生成: unchanged_lint() の値と比較すると、種類を指定しないときに pause_comma の指摘が出る70本（yomiyasu_rewritten 36本、blacklist_ai 15本、raw_ai 12本、edge_cases 5本、human の human_oga_06 と human_oga_08）の5通り（plain、strict、fail_error、json、stdin）が変わった。変わったファイルは、本家が再生成した70本と同じだった。pause_comma は info なので、lint の --strict と --fail-on の終了コードは変わらない。その他の行は、現在の出力と1字も違わないことを確認した。"
   ]
 }
