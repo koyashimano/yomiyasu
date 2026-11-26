@@ -110,7 +110,7 @@ class SkillTextTest(unittest.TestCase):
     def test_chapter8a_paragraph_and_step5(self):
         commas = section(self.skill, "### 文長と読点の調整")
         # 3.0.0 で、推敲で新しく置く読点を残す読点に限る文は、この節の「間を作るだけの読点は外し、新しく足しません」と、
-        # Step 5 の「増えた読点が残す読点に当たらなければ外す」に分かれた（3.1.0 の後で Step 5 は Step 3 に入った）
+        # Step 5 の「増えた読点が残す読点に該当しなければ外す」に分かれた（3.1.0 の後で Step 5 は Step 3 に入った）
         self.assertIn("短い目的語の「を」のすぐ後で間を作るのみの読点は除き、新しく追加しない", commas)
         self.assertIn("除くのは読点のみで、語順と述語は変えない", commas)
         # 「6字以内の短い目的語の「を、」も候補に出ます」（lint の pause_comma の候補の説明）は 3.0.0 で SKILL.md から外した。
@@ -122,7 +122,7 @@ class SkillTextTest(unittest.TestCase):
                 self.assertIn("6字以内の短い目的語の「を、」も候補に出る", points[0])
         self.assertNotIn("（「を、」は候補に出ません）", self.skill)
         self.assertNotIn("（「を、」は候補に出ない）", self.skill)
-        self.assertIn("原文と最終稿で地の文の読点の数を比べ、増えた読点が「文長と読点の調整」の残す読点に当たらなければ除く",
+        self.assertIn("原文と最終稿で地の文の読点の数を比べ、増えた読点が「文長と読点の調整」の残す読点に該当しなければ除く",
                       section(self.skill, "### Step 3:"))
 
     def test_chapter5a_sentence_and_references(self):

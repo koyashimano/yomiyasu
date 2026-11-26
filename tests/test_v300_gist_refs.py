@@ -40,7 +40,7 @@ class GistReferencesTest(unittest.TestCase):
         self.assertIn("同じ文書や、同じリポジトリの他の文書で繰り返し使っていることは、1つ目に「はい」と答える根拠にしない",
                       chapter(text, 2))
         self.assertIn("依頼、allow.txt、書き手が文書の中で定義した呼び名は、繰り返しとは別に扱い、それに従う。", chapter(text, 2))
-        self.assertIn("ただし、lint の型4・型5に当たった言葉と flag.txt の言葉は、辞書の訳語でもこの例外に入らない（git の文書の「枝」）。",
+        self.assertIn("ただし、lint の型4・型5に該当した言葉と flag.txt の言葉は、辞書の訳語でもこの例外に入らない（git の文書の「枝」）。",
                       chapter(text, 3))
         self.assertIn("型4と型5の言葉をその分野の呼び名に置き換えるのは", chapter(text, 4))
         self.assertIn("原文にない漢語を追加しない規則は", chapter(text, 4))

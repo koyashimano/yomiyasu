@@ -157,7 +157,7 @@ class PointerTest(unittest.TestCase):
             ("gemini-syntax.md", "SKILL.md「2文の否定対比と「もちろん、」」に従って見直す"),
             ("doc-types/essay.md", "否定を残して1文にまとめる（SKILL.md「2文の否定対比と「もちろん、」」）"),
             ("slop-catalog.md", "SKILL.md「段落と文の論理構造（つながり）」に従い、宣言の数と続く項目の数が合っている場合に限り"),
-            ("review-points.md", "renyo_noun（2.3.0。他動詞を1語のみ名詞にした言葉を「の」で受ける形。message に当たった表現）: "
+            ("review-points.md", "renyo_noun（2.3.0。他動詞を1語のみ名詞にした言葉を「の」で受ける形。message に該当箇所）: "
                                  "SKILL.md「直訳語、漢語の詰まり、連用形名詞」"),
             ("gemini-syntax.md", "1つのみなら太字を残す（SKILL.md「太字とラベル」）"),
             ("doc-types/manual.md", "（SKILL.md「装飾記号の排除と太字の表示、コピー調の抑制」）"),
